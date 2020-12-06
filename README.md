@@ -1,5 +1,5 @@
 # ViterbiNet-in-python
-ViterbiNet implementation in python.
+**ViterbiNet implementation in python.
 
 based on the paper:
 
