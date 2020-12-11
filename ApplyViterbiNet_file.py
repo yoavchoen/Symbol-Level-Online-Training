@@ -25,7 +25,8 @@ def ApplyViterbiNet(v_fY, net, s_nConst, s_nMemSize):
     """
     s_nStates = s_nConst**s_nMemSize
     # Use network to compute likelihood function
-    v_fYcat = np.transpose(v_fY)
+    # v_fYcat = np.transpose(v_fY)
+    v_fYcat = v_fY
     v_fYcat = torch.from_numpy(np.reshape(v_fYcat, newshape=(np.size(v_fYcat, 0), np.size(v_fYcat, 1), 1)))
     m_fpS_Y = net.forward(v_fYcat.float())
     # Compute likelihoods
