@@ -19,5 +19,5 @@ class Net(nn.Module):
         # x = self.fc2(x)
         # x = F.relu(x)
         x = self.fc3(x)
-        x = F.softmax(x, dim=2)
+        x = F.softmax(x, dim=1)
         return x
