@@ -39,11 +39,11 @@ def GetViterbiNet(v_fXtrain, v_fYtrain ,s_nConst, s_nMemSize):
     for seuquence proccessing networks in Matlab, into a perceptron with sigmoid activation"""
 
     # Generate network model
-    layers = Net(inputSize, numHiddenUnits, numClasses)
+    net = Net(inputSize, numHiddenUnits, numClasses)
 
 
     # Train network with default learning rate
-    net = TrainViterbiNet(m_fXtrain, v_fYtrain, s_nConst, layers, 0)
+    net = TrainViterbiNet(m_fXtrain, v_fYtrain, s_nConst, net, 0.00005)
 
     # # Compute output PDF using GMM fitting
     # GMModel = fitgmdist(v_fYtrain',s_nMixtureSize,'RegularizationValue',0.1)
