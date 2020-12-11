@@ -44,14 +44,14 @@ s_nMixtureSize = s_nStates
 
 
 #----------Simulation Loop----------#
-v_fExps = np.array([np.arange(1, 2, 1)])  #np.array([np.arange(0.1, 2, 0.1)])  #np.ones((1, 1))
+# v_fExps = np.array([np.arange(1, 2, 1)])  #np.array([np.arange(0.1, 2, 0.1)])  #np.ones((1, 1))
+v_fExps = np.array([[1, 1.5]])
 m_fSERAvg = np.zeros((np.size(v_nCurves), np.size(v_fSigWdB)))
+m_fSER = np.zeros((np.size(v_nCurves), np.size(v_fSigWdB), np.size(v_fExps)))
 
 for eIdx in range(np.size(v_fExps)):
     # Exponentailly decaying channel
     v_fChannel = np.array([np.exp(-v_fExps[0, eIdx] * np.arange(0, s_nMemSize, 1))])
-
-    m_fSER = np.zeros((np.size(v_nCurves), np.size(v_fSigWdB)))
 
     # Generate trainin labels
     v_fXtrain = np.array([np.random.randint(1, 3, s_fTrainSize)])
@@ -102,7 +102,7 @@ for eIdx in range(np.size(v_fExps)):
             # Apply ViterbiNet detctor
             v_fXhat1 = ApplyViterbiNet(v_fYtest, net1, s_nConst, s_nMemSize)
             # Evaluate error rate
-            m_fSER[0, mm] = np.mean(v_fXhat1 != v_fXtest)
+            m_fSER[0, mm, eIdx] = np.mean(v_fXhat1 != v_fXtest)
             
             
         # Viterbi net - CSI uncertainty
@@ -112,7 +112,7 @@ for eIdx in range(np.size(v_fExps)):
             # Apply ViterbiNet detctor
             v_fXhat2 = ApplyViterbiNet(v_fYtest, net2, s_nConst, s_nMemSize)
             # Evaluate error rate
-            m_fSER[1, mm] = np.mean(v_fXhat2 != v_fXtest)
+            m_fSER[1, mm, eIdx] = np.mean(v_fXhat2 != v_fXtest)
 
 
         # Model-based Viterbi algorithm
@@ -130,12 +130,13 @@ for eIdx in range(np.size(v_fExps)):
             # Apply Viterbi detection based on computed likelihoods
             v_fXhat3 = v_fViterbi(m_fLikelihood, s_nConst, s_nMemSize)
             # Evaluate error rate
-            m_fSER[2, mm] = np.mean(v_fXhat3 != v_fXtest)
+            m_fSER[2, mm, eIdx] = np.mean(v_fXhat3 != v_fXtest)
 
         # Display SNR index
         print(mm)
+        print(m_fSER[:, :, eIdx])
 
-    m_fSERAvg = m_fSERAvg + m_fSER
+    m_fSERAvg = m_fSERAvg + m_fSER[:, :, eIdx]
 
     # Dispaly exponent index
     print(eIdx)
@@ -146,34 +147,12 @@ m_fSERAvg = m_fSERAvg / np.size(v_fExps)
 
 
 #----------Display Results----------#
-""""
-v_stPlotType = strvcat( '-rs', '--go', '-.b^')
-
-v_stLegend = [];
-fig1 = figure;
-set(fig1, 'WindowStyle', 'docked');
-%
-for aa=1:s_nCurves
-    if (v_nCurves(aa) ~= 0)
-        v_stLegend = strvcat(v_stLegend,  v_stProts(aa,:));
-        semilogy(v_fSigWdB, m_fSERAvg(aa,:), v_stPlotType(aa,:),'LineWidth',1,'MarkerSize',10);
-        hold on;
-    end
-end
-
-xlabel('SNR [dB]');
-ylabel('Symbol error rate');
-grid on;
-legend(v_stLegend,'Location','SouthWest');
-hold off;
-"""
-
 plt.figure()
-plt.semilogy(np.transpose(v_fSigWdB), m_fSER[0, :], 'ro--',
-             np.transpose(v_fSigWdB), m_fSER[1, :], 'go--',
-             np.transpose(v_fSigWdB), m_fSER[2, :], 'bo--')
+plt.semilogy(np.transpose(v_fSigWdB), m_fSERAvg[0, :], 'ro--',
+             np.transpose(v_fSigWdB), m_fSERAvg[1, :], 'go--',
+             np.transpose(v_fSigWdB), m_fSERAvg[2, :], 'bo--')
 plt.legend(('ViterbiNet - perfect CSI', 'ViterbiNet - CSI uncertainty', 'Viterbi algorithm'))
-plt.title('SER - Symbol Error Rate\n(Learn Rate=0.00001, maxEpochs=50, miniBatchSize=25)\n(NN=1x75x16)')
+plt.title('SER - Symbol Error Rate\n(Learn Rate=0.00005, maxEpochs=50, miniBatchSize=25)\n(NN=1x75x16)')
 plt.xlabel('SNR [dB]')
 plt.ylabel('SER')
 plt.grid(True, which="both", ls="-")
