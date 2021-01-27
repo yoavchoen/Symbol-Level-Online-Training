@@ -32,7 +32,7 @@ def GetViterbiNet(v_fXtrain, v_fYtrain ,s_nConst, s_nMemSize):
 
     # Generate neural network
     inputSize = 1
-    numHiddenUnits = 100
+    numHiddenUnits = 75
     numClasses = s_nConst ** s_nMemSize
 
     """Work around converting an LSTM, which is the supported first layer
@@ -43,7 +43,8 @@ def GetViterbiNet(v_fXtrain, v_fYtrain ,s_nConst, s_nMemSize):
 
 
     # Train network with default learning rate
-    net = TrainViterbiNet(m_fXtrain, v_fYtrain, s_nConst, net, 0.00005)
+    # net = TrainViterbiNet(m_fXtrain, v_fYtrain, s_nConst, net, 0.00005)
+    net.TrainViterbiNet(m_fXtrain, v_fYtrain, s_nConst, 0.00005)
 
     # # Compute output PDF using GMM fitting
     # GMModel = fitgmdist(v_fYtrain',s_nMixtureSize,'RegularizationValue',0.1)
