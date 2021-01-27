@@ -45,7 +45,7 @@ s_nMixtureSize = s_nStates
 
 #----------Simulation Loop----------#
 # v_fExps = np.array([np.arange(1, 2, 1)])  #np.array([np.arange(0.1, 2, 0.1)])  #np.ones((1, 1))
-v_fExps = np.array([[1, 1.5]])
+v_fExps = np.array([[0.5, 1, 1.5]])
 m_fSERAvg = np.zeros((np.size(v_nCurves), np.size(v_fSigWdB)))
 m_fSER = np.zeros((np.size(v_nCurves), np.size(v_fSigWdB), np.size(v_fExps)))
 
@@ -100,7 +100,8 @@ for eIdx in range(np.size(v_fExps)):
             # Train network
             net1 = GetViterbiNet(v_fXtrain, v_fYtrain, s_nConst, s_nMemSize)
             # Apply ViterbiNet detctor
-            v_fXhat1 = ApplyViterbiNet(v_fYtest, net1, s_nConst, s_nMemSize)
+            # v_fXhat1 = ApplyViterbiNet(v_fYtest, net1, s_nConst, s_nMemSize)
+            v_fXhat1 = net1.ApplyViterbiNet(v_fYtest, s_nConst, s_nMemSize)
             # Evaluate error rate
             m_fSER[0, mm, eIdx] = np.mean(v_fXhat1 != v_fXtest)
             
@@ -110,7 +111,8 @@ for eIdx in range(np.size(v_fExps)):
             # Train network using training with uncertainty
             net2 = GetViterbiNet(v_fXtrain, v_fYtrain2, s_nConst, s_nMemSize)
             # Apply ViterbiNet detctor
-            v_fXhat2 = ApplyViterbiNet(v_fYtest, net2, s_nConst, s_nMemSize)
+            # v_fXhat2 = ApplyViterbiNet(v_fYtest, net2, s_nConst, s_nMemSize)
+            v_fXhat2 = net2.ApplyViterbiNet(v_fYtest, s_nConst, s_nMemSize)
             # Evaluate error rate
             m_fSER[1, mm, eIdx] = np.mean(v_fXhat2 != v_fXtest)
 
