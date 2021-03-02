@@ -8,6 +8,16 @@ from GetViterbiNet_file import GetViterbiNet
 from ApplyViterbiNet_file import ApplyViterbiNet
 from v_fViterbi_file import v_fViterbi
 from m_fMyReshape_file import m_fMyReshape
+from SOVA_path_and_SER import *
+
+
+def grade_AVG(x1, x2, x3):
+    X = np.zeros((3, 50000))
+    X[0, :] = np.rint((x1[0, :]+x2[0, :]+x3[0, :])/3)
+    X[1, :] = (x1[1, :]+x2[1, :]+x3[1, :])/3
+    X[2, :] = path(np.reshape(X[0, :]-1, newshape=(1, 50000)))
+    return X
+
 
 np.random.seed(9001)
 
@@ -19,7 +29,7 @@ s_fTestSize = 50000  # Test data size
 
 s_nStates = s_nConst**s_nMemSize
 
-v_fSigWdB = np.array([np.arange(-6, 11, 2)]) #  np.array([np.arange(-6, 11, 2)])    # Noise variance in dB
+v_fSigWdB = np.array([np.arange(-6, 11, 2)]) #np.array([[-4, 0, 4, 6, 8]]) #  np.array([np.arange(-6, 11, 2)])    # Noise variance in dB
 
 s_fEstErrVar = 0.1   # Estimation error variance
 # Frame size for generating noisy training
@@ -73,6 +83,12 @@ for eIdx in range(np.size(v_fExps)):
     m_fStest = m_fMyReshape(v_fStest, s_nMemSize)
     v_Rtest = np.dot(np.fliplr(v_fChannel), m_fStest)
 
+
+    d_path1 = np.zeros((9, 4))
+    d_symbol1 = np.zeros((9, 4))
+    d_path2 = np.zeros((9, 4))
+    d_symbol2 = np.zeros((9, 4))
+
     # Loop over number of SNR
     for mm in range(np.size(v_fSigWdB)):
         s_fSigmaW = 10 ** (-0.1 * (v_fSigWdB[0, mm]))
@@ -99,22 +115,48 @@ for eIdx in range(np.size(v_fExps)):
         if v_nCurves[0] == 1:
             # Train network
             net1 = GetViterbiNet(v_fXtrain, v_fYtrain, s_nConst, s_nMemSize)
+            # -----ensamble-----#
+            # net1_1 = GetViterbiNet(v_fXtrain, v_fYtrain, s_nConst, s_nMemSize)  # ensamble
+            # net1_2 = GetViterbiNet(v_fXtrain, v_fYtrain, s_nConst, s_nMemSize)  # ensamble
+
             # Apply ViterbiNet detctor
-            # v_fXhat1 = ApplyViterbiNet(v_fYtest, net1, s_nConst, s_nMemSize)
             v_fXhat1 = net1.ApplyViterbiNet(v_fYtest, s_nConst, s_nMemSize)
+            #-----ensamble-----#
+            # v_fXhat1_1 = net1_1.ApplyViterbiNet(v_fYtest, s_nConst, s_nMemSize)
+            # v_fXhat1_2 = net1_2.ApplyViterbiNet(v_fYtest, s_nConst, s_nMemSize)
+            # v_fXhat1 = grade_AVG(v_fXhat1, v_fXhat1_1, v_fXhat1_2)
+
             # Evaluate error rate
-            m_fSER[0, mm, eIdx] = np.mean(v_fXhat1 != v_fXtest)
-            
+            m_fSER[0, mm, eIdx] = np.mean(v_fXhat1[0, :] != v_fXtest)
+
+            #-----soft output-----#
+            datasize_and_err_path1, datasize_and_err_symbol1 = sova_corelation(v_fXtest, v_fXhat1)
+            d_path1[mm, :] = get_d(datasize_and_err_path1)
+            d_symbol1[mm, :] = get_d(datasize_and_err_symbol1)
+
             
         # Viterbi net - CSI uncertainty
         if v_nCurves[1] == 1:
             # Train network using training with uncertainty
             net2 = GetViterbiNet(v_fXtrain, v_fYtrain2, s_nConst, s_nMemSize)
+            # -----ensamble-----#
+            # net2_1 = GetViterbiNet(v_fXtrain, v_fYtrain, s_nConst, s_nMemSize)  # ensamble
+            # net2_2 = GetViterbiNet(v_fXtrain, v_fYtrain, s_nConst, s_nMemSize)  # ensamble
+
             # Apply ViterbiNet detctor
-            # v_fXhat2 = ApplyViterbiNet(v_fYtest, net2, s_nConst, s_nMemSize)
             v_fXhat2 = net2.ApplyViterbiNet(v_fYtest, s_nConst, s_nMemSize)
+            #-----ensamble-----#
+            # v_fXhat2_1 = net2_1.ApplyViterbiNet(v_fYtest, s_nConst, s_nMemSize)
+            # v_fXhat2_2 = net2_2.ApplyViterbiNet(v_fYtest, s_nConst, s_nMemSize)
+            # v_fXhat2 = grade_AVG(v_fXhat2, v_fXhat2_1, v_fXhat2_2)
+
             # Evaluate error rate
-            m_fSER[1, mm, eIdx] = np.mean(v_fXhat2 != v_fXtest)
+            m_fSER[1, mm, eIdx] = np.mean(v_fXhat2[0, :] != v_fXtest)
+
+            # -----soft output-----#
+            datasize_and_err_path2, datasize_and_err_symbol2 = sova_corelation(v_fXtest, v_fXhat2)
+            d_path2[mm, :] = get_d(datasize_and_err_path2)
+            d_symbol2[mm, :] = get_d(datasize_and_err_symbol2)
 
 
         # Model-based Viterbi algorithm
@@ -132,7 +174,7 @@ for eIdx in range(np.size(v_fExps)):
             # Apply Viterbi detection based on computed likelihoods
             v_fXhat3 = v_fViterbi(m_fLikelihood, s_nConst, s_nMemSize)
             # Evaluate error rate
-            m_fSER[2, mm, eIdx] = np.mean(v_fXhat3 != v_fXtest)
+            m_fSER[2, mm, eIdx] = np.mean(v_fXhat3[0, :] != v_fXtest)
 
         # Display SNR index
         print(mm)
@@ -149,11 +191,21 @@ m_fSERAvg = m_fSERAvg / np.size(v_fExps)
 
 
 #----------Display Results----------#
+d_symbol1_ = np.array([d_symbol1[3, :], d_symbol1[4, :], d_symbol1[5, :], d_symbol1[6, :], d_symbol1[7, :]])
+d_symbol2_ = np.array([d_symbol2[3, :], d_symbol2[4, :], d_symbol2[5, :], d_symbol2[6, :], d_symbol2[7, :]])
+d_path1_ = np.array([d_path1[3, :], d_path1[4, :], d_path1[5, :], d_path1[6, :], d_path1[7, :]])
+d_path2_ = np.array([d_path2[3, :], d_path2[4, :], d_path2[5, :], d_path2[6, :], d_path2[7, :]])
+
+
+diagram_plot(d_symbol1_, d_path1_)
+diagram_plot(d_symbol2_, d_path2_)
+
 plt.figure()
 plt.semilogy(np.transpose(v_fSigWdB), m_fSERAvg[0, :], 'ro--',
              np.transpose(v_fSigWdB), m_fSERAvg[1, :], 'go--',
              np.transpose(v_fSigWdB), m_fSERAvg[2, :], 'bo--')
-plt.legend(('ViterbiNet - perfect CSI', 'ViterbiNet - CSI uncertainty', 'Viterbi algorithm'))
+plt.legend(('ViterbiNet - perfect CSI', 'ViterbiNet - CSI uncertainty', 'Viterbi '
+                                                                        'algorithm'))
 plt.title('SER - Symbol Error Rate\n(Learn Rate=0.00005, maxEpochs=50, miniBatchSize=25)\n(NN=1x75x16)')
 plt.xlabel('SNR [dB]')
 plt.ylabel('SER')
