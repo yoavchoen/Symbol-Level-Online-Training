@@ -24,7 +24,7 @@ def v_fViterbi(m_fPriors, s_nConst, s_nMemSize):
 
     s_nDataSize = np.size(m_fPriors, 0)
     s_nStates = s_nConst**s_nMemSize
-    v_fXhat = np.zeros((1, s_nDataSize))
+    v_fXhat = np.zeros((3, s_nDataSize))
 
     # Generate trellis matrix
     m_fTrellis = np.zeros((s_nStates, s_nConst))
@@ -80,11 +80,19 @@ def v_fViterbi(m_fPriors, s_nConst, s_nMemSize):
         #    for ll in range(s_nConst):
         v_fTemp = np.transpose(np.vstack((np.transpose(np.vstack((v_fCtilde[0:s_nStates:s_nConst], v_fCtilde[0:s_nStates:s_nConst]))) + np.array([m_fCost[kk, 0:s_nStates]]),
                                           np.transpose(np.vstack((v_fCtilde[1:s_nStates:s_nConst], v_fCtilde[1:s_nStates:s_nConst]))) + np.array([m_fCost[kk, 0:s_nStates]]))))
-        m_fCtildeNext = m_fCtildeNext = np.transpose(np.array([v_fTemp.min(axis=1)]))
+        m_fCtildeNext = np.transpose(np.array([v_fTemp.min(axis=1)]))
         v_fCtilde = m_fCtildeNext
         I = np.argmin(v_fCtilde)
         # return index of first symbol in current state
-        v_fXhat[0, kk] = I % s_nConst + 1
+        v_fXhat[0, kk] = I % s_nConst+1
+
+        #-----soft output-----#
+        sorted_v_fCtilde = np.sort(v_fCtilde, 0)
+        min_val1, min_val2 = sorted_v_fCtilde[0:2]
+        v_fXhat[1, kk] = np.abs(min_val2-min_val1)
+
+        v_fXhat[2, kk] = I
+
 
     print('--------------------viterbi algorithm done--------------------')
 
