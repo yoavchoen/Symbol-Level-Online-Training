@@ -48,9 +48,10 @@ class Net(nn.Module):
         """
 
         # -----Training-----#
-        criterion = nn.CrossEntropyLoss()
+        # criterion = nn.CrossEntropyLoss()
+        criterion = nn.MSELoss()
         optimizer = optim.Adam(self.parameters(), lr=learnRate)  # , weight_decay=1e-4
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.2)
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
         epoch = 50
         miniBatchSize = 25
 
@@ -76,7 +77,10 @@ class Net(nn.Module):
                 self.zero_grad()
                 optimizer.zero_grad()
                 batch_outputs = self.forward(y).float()
-                loss = criterion(batch_outputs, torch.max(x, 1)[1])
+                # loss = criterion(batch_outputs, torch.max(x, 1)[1])
+                loss = criterion(batch_outputs, x)
+                # loss = (batch_outputs - x) ** 2
+                # loss = torch.sum(loss, 1).mean()
 
                 loss.backward()
                 optimizer.step()
@@ -110,7 +114,7 @@ class Net(nn.Module):
         """
         s_nStates = s_nConst ** s_nMemSize
         # Use network to compute likelihood function
-        Y_test = torch.from_numpy(np.reshape(Y_test, newshape=(np.size(Y_test, 0), np.size(Y_test, 1), 1)))
+        Y_test = torch.from_numpy(np.reshape(Y_test, newshape=(np.size(Y_test, 0), np.size(Y_test, 1), 1))) #
         m_fpS_Y = self.forward(Y_test.float())
         # Compute likelihoods
         m_fLikelihood = m_fpS_Y
