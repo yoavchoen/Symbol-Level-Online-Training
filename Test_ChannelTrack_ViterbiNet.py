@@ -10,6 +10,8 @@ from v_fViterbi_file import v_fViterbi
 from m_fMyReshape_file import m_fMyReshape
 from SOVA_path_and_SER import *
 import copy
+import collections
+
 
 
 # def grade_AVG(x1, x2, x3):
@@ -39,7 +41,7 @@ s_fTestSize = 50000  # Test data size
 
 s_nStates = s_nConst ** s_nMemSize
 
-v_fSigWdB = np.array([[6]])# np.array([np.arange(-6, 11, 2)])    # Noise variance in dB
+v_fSigWdB = np.array([[6]]) #np.array([np.arange(-6, 11, 2)])    # Noise variance in dB
 
 s_fEstErrVar = 0.1  # Estimation error variance
 # Frame size for generating noisy training
@@ -97,14 +99,14 @@ for eIdx in range(np.size(v_fExps)):
     d_path2 = np.zeros((np.size(v_fSigWdB), 4))
     d_symbol2 = np.zeros((np.size(v_fSigWdB), 4))
 
-    track_SER_avg = np.zeros((7, np.size(v_fSigWdB)))
-    track_PER_avg = np.zeros((7, np.size(v_fSigWdB)))
+    track_SER_avg = np.zeros((9, np.size(v_fSigWdB)))
+    track_PER_avg = np.zeros((9, np.size(v_fSigWdB)))
 
-    track_SER_perfectCSI = np.zeros((5, 25, np.size(v_fSigWdB)))
-    track_SER_uncertaintyCSI = np.zeros((5, 25, np.size(v_fSigWdB)))
+    track_SER_perfectCSI = np.zeros((6, 25, np.size(v_fSigWdB)))
+    track_SER_uncertaintyCSI = np.zeros((6, 25, np.size(v_fSigWdB)))
     track_SER_fullCSI = np.zeros((1, 25, np.size(v_fSigWdB)))
-    track_PER_perfectCSI = np.zeros((5, 25, np.size(v_fSigWdB)))
-    track_PER_uncertaintyCSI = np.zeros((5, 25, np.size(v_fSigWdB)))
+    track_PER_perfectCSI = np.zeros((6, 25, np.size(v_fSigWdB)))
+    track_PER_uncertaintyCSI = np.zeros((6, 25, np.size(v_fSigWdB)))
     track_PER_fullCSI = np.zeros((1, 25, np.size(v_fSigWdB)))
 
 
@@ -247,18 +249,36 @@ for eIdx in range(np.size(v_fExps)):
         net2_NoTrain = copy.deepcopy(net2)
         net1_BadTrain = copy.deepcopy(net1)
         net2_BadTrain = copy.deepcopy(net2)
+        net1_MedTrain = copy.deepcopy(net1)
+        net2_MedTrain = copy.deepcopy(net2)
         net1_jini = copy.deepcopy(net1)
         net2_jini = copy.deepcopy(net2)
-        net1_jini70 = copy.deepcopy(net1)
-        net2_jini70 = copy.deepcopy(net2)
+        net1_jini_p = copy.deepcopy(net1)
+        net2_jini_p = copy.deepcopy(net2)
+
+        MSE_diversity_train = np.zeros((1, s_fCompositeBlocks))
+        MSE_diversity_bad_train = np.zeros((1, s_fCompositeBlocks))
+        MSE_diversity_med_train = np.zeros((1, s_fCompositeBlocks))
+
+        NOISE_train = np.zeros((1, s_fCompositeBlocks))
+        NOISE_bad_train = np.zeros((1, s_fCompositeBlocks))
+        NOISE_med_train = np.zeros((1, s_fCompositeBlocks))
+
+        ERR_train = np.zeros((1, s_fCompositeBlocks))
+        ERR_bad_train = np.zeros((1, s_fCompositeBlocks))
+        ERR_med_train = np.zeros((1, s_fCompositeBlocks))
+
+
+        track_DataSize_per = 0.2
+        med_point = 0.4
 
         for kk in range(s_fCompositeBlocks):
             print(kk)
             m_fStrain2 = m_fMyReshape(v_fStrain[:, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))],
                                       s_nMemSize)
             m_fRtrain2[kk, :] = np.fliplr(np.reshape(m_fChannel[int(3 * kk), :], (1, 4))).dot(m_fStrain2)
-            Y = np.reshape(m_fRtrain2[kk, :], (1, s_fTrainBlkSize)) + np.sqrt(s_fSigmaW) * np.random.randn(
-                np.size(m_fRtrain2[kk, :]))
+            noise = np.sqrt(s_fSigmaW) * np.random.randn(np.size(m_fRtrain2[kk, :]))
+            Y = np.reshape(m_fRtrain2[kk, :], (1, s_fTrainBlkSize)) + noise
 
             #-----ViterbiNet perfect CSI-----#
             if v_nCurves[0] == 1:
@@ -266,14 +286,16 @@ for eIdx in range(np.size(v_fExps)):
                 #training
                 v_fXhat_B = net1_train.ApplyViterbiNet(np.reshape(Y, (1, s_fTrainBlkSize)), s_nConst, s_nMemSize)
 
-                track_SER_perfectCSI[0, kk, mm] = np.mean(
+                track_SER_perfectCSI[3, kk, mm] = np.mean(
                     v_fXhat_B[0, :] != v_fXtrain2[0, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))])
-                track_PER_perfectCSI[0, kk, mm] = np.mean(
+                track_PER_perfectCSI[3, kk, mm] = np.mean(
                     v_fXhat_B[2, :] != path_test_B[0, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))])
 
                 decode_symbol = np.reshape(v_fXhat_B[0, :], (1, len(v_fXhat_B[0, :])))
                 sort_price = np.sort(v_fXhat_B[1, :])
-                threshold = sort_price[int(0.8 * s_fTrainBlkSize)]
+                threshold = sort_price[int((1-track_DataSize_per) * s_fTrainBlkSize)]
+                # ttt = sort_price[int((1-track_DataSize_per) * s_fTrainBlkSize)]###
+                # vvv = v_fXhat_B###
                 Xtrain_symbol = v_fXhat_B[
                     2, v_fXhat_B[1,
                        :] >= threshold]  # m_fMyReshape(decode_symbol[:, v_fXhat_B[1, :] >= threshold], s_nMemSize)#
@@ -281,6 +303,28 @@ for eIdx in range(np.size(v_fExps)):
                 Ytrain_symbol = Y[:, v_fXhat_B[1, :] >= threshold]
 
                 net1_train.TrainViterbiNet(Xtrain_symbol, Ytrain_symbol, s_nConst, 0.00005)
+
+                path_temp = path_test_B[:, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))]  #
+                tem_train = path_temp[:, v_fXhat_B[1, :] >= threshold]  #
+                dict_train = collections.Counter(tem_train[0, :])  #
+                data = np.array(list(dict_train.items()))
+                an_array = data[:, 1]
+                an_optimal_array = np.fix(track_DataSize_per*s_fTrainBlkSize/16)*np.ones((16, 1))
+                MSE_diversity_train[0, kk] = np.square(np.subtract(an_array, an_optimal_array)).mean()
+                print('train diversity MSE - ', MSE_diversity_train[0, kk])
+
+                NOISE_train[0, kk] = np.sum(np.abs(noise[v_fXhat_B[1, :] >= threshold])**2)
+                print('train noise power - ', NOISE_train[0, kk])
+
+                tem = path_test_B[:, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))]
+                ERR_train[0, kk] = np.mean(Xtrain_symbol != tem[:, v_fXhat_B[1, :] >= threshold])
+                print('train error - ', ERR_train[0, kk])
+
+                # symbol_temp = v_fXtrain2[:, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))]  #
+                # Y_true = symbol_temp[:, v_fXhat_B[1, :] >= threshold]
+                # Y_ch = Y[:, v_fXhat_B[1, :] >= threshold]
+                # MSE_train = np.square(np.subtract(Y_true, Y_ch)).mean()
+
 
                 # no training
                 v_fXhat_B = net1_NoTrain.ApplyViterbiNet(np.reshape(Y, (1, s_fTrainBlkSize)), s_nConst, s_nMemSize)
@@ -304,7 +348,9 @@ for eIdx in range(np.size(v_fExps)):
 
                 decode_symbol = np.reshape(v_fXhat_B[0, :], (1, len(v_fXhat_B[0, :])))
                 sort_price = np.sort(v_fXhat_B[1, :])
-                threshold = sort_price[int(0.2 * s_fTrainBlkSize)]
+                threshold = sort_price[int(track_DataSize_per * s_fTrainBlkSize)]
+                # ttt = threshold  ###
+                # vvv = v_fXhat_B###
                 Xtrain_symbol = v_fXhat_B[
                     2, v_fXhat_B[1,
                        :] < threshold]  # m_fMyReshape(decode_symbol[:, v_fXhat_B[1, :] >= threshold], s_nMemSize)#
@@ -313,25 +359,74 @@ for eIdx in range(np.size(v_fExps)):
 
                 net1_BadTrain.TrainViterbiNet(Xtrain_symbol, Ytrain_symbol, s_nConst, 0.00005)
 
-                #jini
-                v_fXhat_B = net1_jini.ApplyViterbiNet(np.reshape(Y, (1, s_fTrainBlkSize)), s_nConst, s_nMemSize)
+                tem_bad_train = path_temp[:, v_fXhat_B[1, :] < threshold]  #
+                dict_bad_train = collections.Counter(tem_bad_train[0, :])  #
+                data = np.array(list(dict_bad_train.items()))
+                an_array = data[:, 1]
+                an_optimal_array = np.fix(track_DataSize_per * s_fTrainBlkSize / 16) * np.ones((16, 1))
+                MSE_diversity_bad_train[0, kk] = np.square(np.subtract(an_array, an_optimal_array)).mean()
+                print('bad train diversity MSE - ', MSE_diversity_bad_train[0, kk])
 
-                track_SER_perfectCSI[3, kk, mm] = np.mean(
+                NOISE_bad_train[0, kk] = np.sum(np.abs(noise[v_fXhat_B[1, :] < threshold])**2)
+                print('bad train noise power - ', NOISE_bad_train[0, kk])
+
+                tem = path_test_B[:, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))]
+                ERR_bad_train[0, kk] = np.mean(Xtrain_symbol != tem[:, v_fXhat_B[1, :] < threshold])
+                print('bad train error - ', ERR_bad_train[0, kk])
+
+                # Y_true = symbol_temp[:, v_fXhat_B[1, :] < threshold]
+                # Y_ch = Y[:, v_fXhat_B[1, :] < threshold]
+                # MSE_bad_train = np.square(np.subtract(Y_true, Y_ch)).mean()
+
+                #Median training
+                v_fXhat_B = net1_MedTrain.ApplyViterbiNet(np.reshape(Y, (1, s_fTrainBlkSize)), s_nConst, s_nMemSize)
+
+                track_SER_perfectCSI[0, kk, mm] = np.mean(
                     v_fXhat_B[0, :] != v_fXtrain2[
                         0, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))])
-                track_PER_perfectCSI[3, kk, mm] = np.mean(
+                track_PER_perfectCSI[0, kk, mm] = np.mean(
                     v_fXhat_B[2, :] != path_test_B[
                         0, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))])
 
-                Xtrain_symbol = path_test_B[
-                        0, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))]
-                Xtrain_symbol = np.reshape(Xtrain_symbol,newshape=(1, np.size(Xtrain_symbol)))
-                Ytrain_symbol = Y
+                decode_symbol = np.reshape(v_fXhat_B[0, :], (1, len(v_fXhat_B[0, :])))
+                sort_price = np.sort(v_fXhat_B[1, :])
+                threshold1 = sort_price[int((med_point - track_DataSize_per/2) * s_fTrainBlkSize)]
+                threshold2 = sort_price[int((med_point + track_DataSize_per/2) * s_fTrainBlkSize)]
+                aaa = v_fXhat_B
 
-                net1_jini.TrainViterbiNet(Xtrain_symbol, Ytrain_symbol, s_nConst, 0.00005)
+                # ttt = sort_price[int((1-track_DataSize_per) * s_fTrainBlkSize)]###
+                # vvv = v_fXhat_B###
+                Xtrain_symbol = v_fXhat_B[
+                    2, (v_fXhat_B[1, :] >= threshold1) & (v_fXhat_B[1, :] < threshold2)]  # m_fMyReshape(decode_symbol[:, v_fXhat_B[1, :] >= threshold], s_nMemSize)#
+                Xtrain_symbol = np.reshape(Xtrain_symbol, newshape=(1, np.size(Xtrain_symbol)))
+                Ytrain_symbol = Y[:, (v_fXhat_B[1, :] >= threshold1) & (v_fXhat_B[1, :] < threshold2)]
 
-                #jini70
-                v_fXhat_B = net1_jini70.ApplyViterbiNet(np.reshape(Y, (1, s_fTrainBlkSize)), s_nConst, s_nMemSize)
+                net1_MedTrain.TrainViterbiNet(Xtrain_symbol, Ytrain_symbol, s_nConst, 0.00005)
+
+                path_temp = path_test_B[:, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))]  #
+                tem_train = path_temp[:, (v_fXhat_B[1, :] >= threshold1) & (v_fXhat_B[1, :] < threshold2)]  #
+                dict_med_train = collections.Counter(tem_train[0, :])  #
+                data = np.array(list(dict_med_train.items()))
+                an_array = data[:, 1]
+                an_optimal_array = np.fix(track_DataSize_per * s_fTrainBlkSize / 16) * np.ones((16, 1))
+                MSE_diversity_med_train[0, kk] = np.square(np.subtract(an_array, an_optimal_array)).mean()
+                print('median training diversity MSE - ', MSE_diversity_med_train[0, kk])
+
+                NOISE_med_train[0, kk] = np.sum(np.abs(noise[(v_fXhat_B[1, :] >= threshold1) & (v_fXhat_B[1, :] < threshold2)])**2)
+                print('median training noise power - ', NOISE_med_train[0, kk])
+
+                tem = path_test_B[:, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))]
+                ERR_med_train[0, kk] = np.mean(Xtrain_symbol != tem[:, (v_fXhat_B[1, :] >= threshold1) & (v_fXhat_B[1, :] < threshold2)])
+                print('train error - ', ERR_med_train[0, kk])
+
+                # symbol_temp = v_fXtrain2[:, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))]  #
+                # Y_true = symbol_temp[:, v_fXhat_B[1, :] >= threshold]
+                # Y_ch = Y[:, v_fXhat_B[1, :] >= threshold]
+                # MSE_train = np.square(np.subtract(Y_true, Y_ch)).mean()
+
+
+                #jini
+                v_fXhat_B = net1_jini.ApplyViterbiNet(np.reshape(Y, (1, s_fTrainBlkSize)), s_nConst, s_nMemSize)
 
                 track_SER_perfectCSI[4, kk, mm] = np.mean(
                     v_fXhat_B[0, :] != v_fXtrain2[
@@ -341,11 +436,31 @@ for eIdx in range(np.size(v_fExps)):
                         0, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))])
 
                 Xtrain_symbol = path_test_B[
-                    0, range(int(kk * s_fTrainBlkSize), int(((kk + 0.7) * s_fTrainBlkSize)))]
+                        0, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))]
                 Xtrain_symbol = np.reshape(Xtrain_symbol, newshape=(1, np.size(Xtrain_symbol)))
                 Ytrain_symbol = Y
 
-                net1_jini70.TrainViterbiNet(Xtrain_symbol, Ytrain_symbol, s_nConst, 0.00005)
+                net1_jini.TrainViterbiNet(Xtrain_symbol, Ytrain_symbol, s_nConst, 0.00005)
+
+                #jini_p
+                v_fXhat_B = net1_jini_p.ApplyViterbiNet(np.reshape(Y, (1, s_fTrainBlkSize)), s_nConst, s_nMemSize)
+
+                track_SER_perfectCSI[5, kk, mm] = np.mean(
+                    v_fXhat_B[0, :] != v_fXtrain2[
+                        0, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))])
+                track_PER_perfectCSI[5, kk, mm] = np.mean(
+                    v_fXhat_B[2, :] != path_test_B[
+                        0, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))])
+
+                # Xtrain_symbol = path_test_B[0, range(int(kk * s_fTrainBlkSize), int(((kk + track_DataSize_per) * s_fTrainBlkSize)))]
+                pp = path_test_B[0, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))]###
+                Xtrain_symbol = pp[(aaa[1, :] >= threshold1) & (aaa[1, :] < threshold2)]
+                # Xtrain_symbol = pp[vvv[1,:] < ttt]###
+                Xtrain_symbol = np.reshape(Xtrain_symbol, newshape=(1, np.size(Xtrain_symbol)))
+                Ytrain_symbol = Y[:, (aaa[1, :] >= threshold1) & (aaa[1, :] < threshold2)]
+                # Ytrain_symbol = Y[:, vvv[1,:] < ttt]###
+
+                net1_jini_p.TrainViterbiNet(Xtrain_symbol, Ytrain_symbol, s_nConst, 0.00005)
 
 
             #-----ViterbiNet uncertainty CSI-----#
@@ -354,14 +469,14 @@ for eIdx in range(np.size(v_fExps)):
                 #training
                 v_fXhat_B = net2_train.ApplyViterbiNet(np.reshape(Y, (1, s_fTrainBlkSize)), s_nConst, s_nMemSize)
 
-                track_SER_uncertaintyCSI[0, kk, mm] = np.mean(
+                track_SER_uncertaintyCSI[3, kk, mm] = np.mean(
                     v_fXhat_B[0, :] != v_fXtrain2[0, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))])
-                track_PER_uncertaintyCSI[0, kk, mm] = np.mean(
+                track_PER_uncertaintyCSI[3, kk, mm] = np.mean(
                     v_fXhat_B[2, :] != path_test_B[0, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))])
 
                 decode_symbol = np.reshape(v_fXhat_B[0, :], (1, len(v_fXhat_B[0, :])))
                 sort_price = np.sort(v_fXhat_B[1, :])
-                threshold = sort_price[int(0.8 * s_fTrainBlkSize)]
+                threshold = sort_price[int((1-track_DataSize_per) * s_fTrainBlkSize)]
                 Xtrain_symbol = v_fXhat_B[
                     2, v_fXhat_B[1,
                        :] >= threshold]  # m_fMyReshape(decode_symbol[:, v_fXhat_B[1, :] >= threshold], s_nMemSize)#
@@ -392,7 +507,7 @@ for eIdx in range(np.size(v_fExps)):
 
                 decode_symbol = np.reshape(v_fXhat_B[0, :], (1, len(v_fXhat_B[0, :])))
                 sort_price = np.sort(v_fXhat_B[1, :])
-                threshold = sort_price[int(0.2 * s_fTrainBlkSize)]
+                threshold = sort_price[int(track_DataSize_per * s_fTrainBlkSize)]
                 Xtrain_symbol = v_fXhat_B[
                     2, v_fXhat_B[1,
                        :] < threshold]  # m_fMyReshape(decode_symbol[:, v_fXhat_B[1, :] >= threshold], s_nMemSize)#
@@ -401,13 +516,56 @@ for eIdx in range(np.size(v_fExps)):
 
                 net2_BadTrain.TrainViterbiNet(Xtrain_symbol, Ytrain_symbol, s_nConst, 0.00005)
 
+
+                # Median training
+                v_fXhat_B = net2_MedTrain.ApplyViterbiNet(np.reshape(Y, (1, s_fTrainBlkSize)), s_nConst, s_nMemSize)
+
+                track_SER_uncertaintyCSI[0, kk, mm] = np.mean(
+                    v_fXhat_B[0, :] != v_fXtrain2[
+                        0, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))])
+                track_PER_uncertaintyCSI[0, kk, mm] = np.mean(
+                    v_fXhat_B[2, :] != path_test_B[
+                        0, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))])
+
+                decode_symbol = np.reshape(v_fXhat_B[0, :], (1, len(v_fXhat_B[0, :])))
+                sort_price = np.sort(v_fXhat_B[1, :])
+                threshold1 = sort_price[int((med_point - track_DataSize_per / 2) * s_fTrainBlkSize)]
+                threshold2 = sort_price[int((med_point + track_DataSize_per / 2) * s_fTrainBlkSize)]
+                aaa = v_fXhat_B
+
+                # ttt = sort_price[int((1-track_DataSize_per) * s_fTrainBlkSize)]###
+                # vvv = v_fXhat_B###
+                Xtrain_symbol = v_fXhat_B[
+                    2, (v_fXhat_B[1, :] >= threshold1) & (v_fXhat_B[1,
+                                                          :] < threshold2)]  # m_fMyReshape(decode_symbol[:, v_fXhat_B[1, :] >= threshold], s_nMemSize)#
+                Xtrain_symbol = np.reshape(Xtrain_symbol, newshape=(1, np.size(Xtrain_symbol)))
+                Ytrain_symbol = Y[:, (v_fXhat_B[1, :] >= threshold1) & (v_fXhat_B[1, :] < threshold2)]
+
+                net2_MedTrain.TrainViterbiNet(Xtrain_symbol, Ytrain_symbol, s_nConst, 0.00005)
+
+                # path_temp = path_test_B[:, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))]  #
+                # tem_train = path_temp[:, (v_fXhat_B[1, :] >= threshold1) & (v_fXhat_B[1, :] < threshold2)]  #
+                # dict_train = collections.Counter(tem_train[0, :])  #
+                # data = np.array(list(dict_train.items()))
+                # an_array = data[:, 1]
+                # an_optimal_array = np.fix(track_DataSize_per * s_fTrainBlkSize / 16) * np.ones((16, 1))
+                # MSE_diversity_train[0, kk] = np.square(np.subtract(an_array, an_optimal_array)).mean()
+                # print('median training diversity MSE - ', MSE_diversity_train[0, kk])
+
+                # symbol_temp = v_fXtrain2[:, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))]  #
+                # Y_true = symbol_temp[:, v_fXhat_B[1, :] >= threshold]
+                # Y_ch = Y[:, v_fXhat_B[1, :] >= threshold]
+                # MSE_train = np.square(np.subtract(Y_true, Y_ch)).mean()
+
+
+
                 # jini
                 v_fXhat_B = net2_jini.ApplyViterbiNet(np.reshape(Y, (1, s_fTrainBlkSize)), s_nConst, s_nMemSize)
 
-                track_SER_uncertaintyCSI[3, kk, mm] = np.mean(
+                track_SER_uncertaintyCSI[4, kk, mm] = np.mean(
                     v_fXhat_B[0, :] != v_fXtrain2[
                         0, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))])
-                track_PER_uncertaintyCSI[3, kk, mm] = np.mean(
+                track_PER_uncertaintyCSI[4, kk, mm] = np.mean(
                     v_fXhat_B[2, :] != path_test_B[
                         0, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))])
 
@@ -418,22 +576,23 @@ for eIdx in range(np.size(v_fExps)):
 
                 net2_jini.TrainViterbiNet(Xtrain_symbol, Ytrain_symbol, s_nConst, 0.00005)
 
-                # jini70
-                v_fXhat_B = net2_jini70.ApplyViterbiNet(np.reshape(Y, (1, s_fTrainBlkSize)), s_nConst, s_nMemSize)
+                # jini_p
+                v_fXhat_B = net2_jini_p.ApplyViterbiNet(np.reshape(Y, (1, s_fTrainBlkSize)), s_nConst, s_nMemSize)
 
-                track_SER_uncertaintyCSI[4, kk, mm] = np.mean(
+                track_SER_uncertaintyCSI[5, kk, mm] = np.mean(
                     v_fXhat_B[0, :] != v_fXtrain2[
                         0, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))])
-                track_PER_uncertaintyCSI[4, kk, mm] = np.mean(
+                track_PER_uncertaintyCSI[5, kk, mm] = np.mean(
                     v_fXhat_B[2, :] != path_test_B[
                         0, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))])
 
-                Xtrain_symbol = path_test_B[
-                    0, range(int(kk * s_fTrainBlkSize), int(((kk + 0.7) * s_fTrainBlkSize)))]
+                # Xtrain_symbol = path_test_B[0, range(int(kk * s_fTrainBlkSize), int(((kk + track_DataSize_per) * s_fTrainBlkSize)))]
+                pp = path_test_B[0, range(int(kk * s_fTrainBlkSize), int(((kk + 1) * s_fTrainBlkSize)))]  ###
+                Xtrain_symbol = pp[(aaa[1, :] >= threshold1) & (aaa[1, :] < threshold2)]
                 Xtrain_symbol = np.reshape(Xtrain_symbol, newshape=(1, np.size(Xtrain_symbol)))
-                Ytrain_symbol = Y
+                Ytrain_symbol = Y[:, (aaa[1, :] >= threshold1) & (aaa[1, :] < threshold2)]
 
-                net2_jini70.TrainViterbiNet(Xtrain_symbol, Ytrain_symbol, s_nConst, 0.00005)
+                net2_jini_p.TrainViterbiNet(Xtrain_symbol, Ytrain_symbol, s_nConst, 0.00005)
 
 
             #-----full_CSI-----#
@@ -474,18 +633,22 @@ for eIdx in range(np.size(v_fExps)):
         track_SER_avg[0, mm] = np.mean(track_SER_perfectCSI[0, :, mm])
         track_SER_avg[1, mm] = np.mean(track_SER_perfectCSI[1, :, mm])
         track_SER_avg[2, mm] = np.mean(track_SER_perfectCSI[2, :, mm])
-        track_SER_avg[3, mm] = np.mean(track_SER_uncertaintyCSI[0, :, mm])
-        track_SER_avg[4, mm] = np.mean(track_SER_uncertaintyCSI[1, :, mm])
-        track_SER_avg[5, mm] = np.mean(track_SER_uncertaintyCSI[2, :, mm])
-        track_SER_avg[6, mm] = np.mean(track_SER_fullCSI[0, :, mm])
+        track_SER_avg[3, mm] = np.mean(track_SER_perfectCSI[3, :, mm])
+        track_SER_avg[4, mm] = np.mean(track_SER_uncertaintyCSI[0, :, mm])
+        track_SER_avg[5, mm] = np.mean(track_SER_uncertaintyCSI[1, :, mm])
+        track_SER_avg[6, mm] = np.mean(track_SER_uncertaintyCSI[2, :, mm])
+        track_SER_avg[7, mm] = np.mean(track_SER_uncertaintyCSI[3, :, mm])
+        track_SER_avg[8, mm] = np.mean(track_SER_fullCSI[0, :, mm])
 
         track_PER_avg[0, mm] = np.mean(track_PER_perfectCSI[0, :, mm])
         track_PER_avg[1, mm] = np.mean(track_PER_perfectCSI[1, :, mm])
         track_PER_avg[2, mm] = np.mean(track_PER_perfectCSI[2, :, mm])
-        track_PER_avg[3, mm] = np.mean(track_PER_uncertaintyCSI[0, :, mm])
-        track_PER_avg[4, mm] = np.mean(track_PER_uncertaintyCSI[1, :, mm])
-        track_PER_avg[5, mm] = np.mean(track_PER_uncertaintyCSI[2, :, mm])
-        track_PER_avg[6, mm] = np.mean(track_PER_fullCSI[0, :, mm])
+        track_PER_avg[3, mm] = np.mean(track_PER_perfectCSI[3, :, mm])
+        track_PER_avg[4, mm] = np.mean(track_PER_uncertaintyCSI[0, :, mm])
+        track_PER_avg[5, mm] = np.mean(track_PER_uncertaintyCSI[1, :, mm])
+        track_PER_avg[6, mm] = np.mean(track_PER_uncertaintyCSI[2, :, mm])
+        track_PER_avg[7, mm] = np.mean(track_PER_uncertaintyCSI[3, :, mm])
+        track_PER_avg[8, mm] = np.mean(track_PER_fullCSI[0, :, mm])
         ####################################
 
 
@@ -565,13 +728,15 @@ plt.semilogy(np.arange(25), track_SER_perfectCSI[0, :, Idx_dB], 'ro--',
              np.arange(25), track_SER_perfectCSI[2, :, Idx_dB],
              np.arange(25), track_SER_perfectCSI[3, :, Idx_dB],
              np.arange(25), track_SER_perfectCSI[4, :, Idx_dB],
+             np.arange(25), track_SER_perfectCSI[5, :, Idx_dB],
              np.arange(25), track_SER_uncertaintyCSI[1, :, Idx_dB],
              np.arange(25), track_SER_uncertaintyCSI[2, :, Idx_dB],
              np.arange(25), track_SER_uncertaintyCSI[3, :, Idx_dB],
-             np.arange(25), track_SER_uncertaintyCSI[4, :, Idx_dB])
+             np.arange(25), track_SER_uncertaintyCSI[4, :, Idx_dB],
+             np.arange(25), track_SER_uncertaintyCSI[5, :, Idx_dB])
 plt.legend(('ViterbiNet - perfect CSI', 'ViterbiNet - CSI uncertainty', 'Viterbi algorithm',
-            'ViterbiNet - perfect CSI - No Train', 'ViterbiNet - perfect CSI - bad training', 'ViterbiNet - perfect CSI - jini','ViterbiNet - perfect CSI - jini 70% Data',
-            'ViterbiNet - uncertainty CSI - No Train', 'ViterbiNet - uncertainty CSI - bad training', 'ViterbiNet - uncertainty CSI - jini','ViterbiNet - uncertainty CSI - jini 70% Data'))
+            'ViterbiNet - perfect CSI - No Train', 'ViterbiNet - perfect CSI - low score training', 'ViterbiNet - perfect CSI - high score training', 'ViterbiNet - perfect CSI - jini', 'ViterbiNet - perfect CSI - jini 20% Data',
+            'ViterbiNet - uncertainty CSI - No Train', 'ViterbiNet - uncertainty CSI - low score training', 'ViterbiNet - uncertainty CSI - high score training', 'ViterbiNet - uncertainty CSI - jini', 'ViterbiNet - uncertainty CSI - jini 20% Data'))
 plt.title('SER - Symbol Error Rate\nChannel Tracking')
 plt.xlabel('t')
 plt.ylabel('SER')
@@ -582,9 +747,10 @@ plt.semilogy(np.arange(25), track_SER_perfectCSI[0, :, Idx_dB], 'ro--',
              np.arange(25), track_SER_perfectCSI[1, :, Idx_dB],
              np.arange(25), track_SER_perfectCSI[2, :, Idx_dB],
              np.arange(25), track_SER_perfectCSI[3, :, Idx_dB],
-             np.arange(25), track_SER_perfectCSI[4, :, Idx_dB])
-plt.legend(('ViterbiNet - perfect CSI', 'Viterbi algorithm',
-            'ViterbiNet - perfect CSI - No Train', 'ViterbiNet - perfect CSI - bad training', 'ViterbiNet - perfect CSI - jini','ViterbiNet - perfect CSI - jini 70% Data'))
+             np.arange(25), track_SER_perfectCSI[4, :, Idx_dB],
+             np.arange(25), track_SER_perfectCSI[5, :, Idx_dB])
+plt.legend(('ViterbiNet - perfect CSI - median training', 'Viterbi algorithm',
+            'ViterbiNet - perfect CSI - No Train', 'ViterbiNet - perfect CSI - low score training', 'ViterbiNet - perfect CSI - high score training', 'ViterbiNet - perfect CSI - jini','ViterbiNet - perfect CSI - jini 20% Data'))
 plt.title('SER - Symbol Error Rate\nChannel Tracking')
 plt.xlabel('t')
 plt.ylabel('SER')
@@ -595,9 +761,10 @@ plt.semilogy(np.arange(25), track_SER_uncertaintyCSI[0, :, Idx_dB], 'go--',
              np.arange(25), track_SER_uncertaintyCSI[1, :, Idx_dB],
              np.arange(25), track_SER_uncertaintyCSI[2, :, Idx_dB],
              np.arange(25), track_SER_uncertaintyCSI[3, :, Idx_dB],
-             np.arange(25), track_SER_uncertaintyCSI[4, :, Idx_dB])
+             np.arange(25), track_SER_uncertaintyCSI[4, :, Idx_dB],
+             np.arange(25), track_SER_uncertaintyCSI[5, :, Idx_dB])
 plt.legend(('ViterbiNet - uncertainty CSI', 'Viterbi algorithm',
-            'ViterbiNet - uncertainty CSI - No Train', 'ViterbiNet - uncertainty CSI - bad training', 'ViterbiNet - uncertainty CSI - jini','ViterbiNet - uncertainty CSI - jini 70% Data'))
+            'ViterbiNet - uncertainty CSI - No Train', 'ViterbiNet - uncertainty CSI - low score training', 'ViterbiNet - uncertainty CSI - high score training', 'ViterbiNet - uncertainty CSI - jini', 'ViterbiNet - uncertainty CSI - jini 20% Data'))
 plt.title('SER - Symbol Error Rate\nChannel Tracking')
 plt.xlabel('t')
 plt.ylabel('SER')
@@ -611,13 +778,15 @@ plt.semilogy(np.arange(25), track_PER_perfectCSI[0, :, Idx_dB], 'ro--',
              np.arange(25), track_PER_perfectCSI[2, :, Idx_dB],
              np.arange(25), track_PER_perfectCSI[3, :, Idx_dB],
              np.arange(25), track_PER_perfectCSI[4, :, Idx_dB],
+             np.arange(25), track_PER_perfectCSI[5, :, Idx_dB],
              np.arange(25), track_PER_uncertaintyCSI[1, :, Idx_dB],
              np.arange(25), track_PER_uncertaintyCSI[2, :, Idx_dB],
              np.arange(25), track_PER_uncertaintyCSI[3, :, Idx_dB],
-             np.arange(25), track_PER_uncertaintyCSI[4, :, Idx_dB])
+             np.arange(25), track_PER_uncertaintyCSI[4, :, Idx_dB],
+             np.arange(25), track_PER_uncertaintyCSI[5, :, Idx_dB])
 plt.legend(('ViterbiNet - perfect CSI', 'ViterbiNet - CSI uncertainty', 'Viterbi algorithm',
-            'ViterbiNet - perfect CSI - No Train', 'ViterbiNet - perfect CSI - bad training', 'ViterbiNet - perfect CSI - jini','ViterbiNet - perfect CSI - jini 70% Data',
-            'ViterbiNet - uncertainty CSI - No Train', 'ViterbiNet - uncertainty CSI - bad training', 'ViterbiNet - uncertainty CSI - jini','ViterbiNet - uncertainty CSI - jini 70% Data'))
+            'ViterbiNet - perfect CSI - No Train', 'ViterbiNet - perfect CSI - low score training', 'ViterbiNet - perfect CSI - high score training', 'ViterbiNet - perfect CSI - jini','ViterbiNet - perfect CSI - jini 20% Data',
+            'ViterbiNet - uncertainty CSI - No Train', 'ViterbiNet - uncertainty CSI - low score training', 'ViterbiNet - uncertainty CSI - high score training', 'ViterbiNet - uncertainty CSI - jini','ViterbiNet - uncertainty CSI - jini 20% Data'))
 plt.title('PER - Path Error Rate\nChannel Tracking')
 plt.xlabel('t')
 plt.ylabel('PER')
@@ -628,9 +797,10 @@ plt.semilogy(np.arange(25), track_PER_perfectCSI[0, :, Idx_dB], 'ro--',
              np.arange(25), track_PER_perfectCSI[1, :, Idx_dB],
              np.arange(25), track_PER_perfectCSI[2, :, Idx_dB],
              np.arange(25), track_PER_perfectCSI[3, :, Idx_dB],
-             np.arange(25), track_PER_perfectCSI[4, :, Idx_dB])
+             np.arange(25), track_PER_perfectCSI[4, :, Idx_dB],
+             np.arange(25), track_PER_perfectCSI[5, :, Idx_dB])
 plt.legend(('ViterbiNet - perfect CSI', 'Viterbi algorithm',
-            'ViterbiNet - perfect CSI - No Train', 'ViterbiNet - perfect CSI - bad training', 'ViterbiNet - perfect CSI - jini','ViterbiNet - perfect CSI - jini 70% Data'))
+            'ViterbiNet - perfect CSI - No Train', 'ViterbiNet - perfect CSI - low score training', 'ViterbiNet - perfect CSI - high score training', 'ViterbiNet - perfect CSI - jini','ViterbiNet - perfect CSI - jini 20% Data'))
 plt.title('PER - Path Error Rate\nChannel Tracking')
 plt.xlabel('t')
 plt.ylabel('PER')
@@ -641,9 +811,10 @@ plt.semilogy(np.arange(25), track_PER_uncertaintyCSI[0, :, Idx_dB], 'go--',
              np.arange(25), track_PER_uncertaintyCSI[1, :, Idx_dB],
              np.arange(25), track_PER_uncertaintyCSI[2, :, Idx_dB],
              np.arange(25), track_PER_uncertaintyCSI[3, :, Idx_dB],
-             np.arange(25), track_PER_uncertaintyCSI[4, :, Idx_dB])
+             np.arange(25), track_PER_uncertaintyCSI[4, :, Idx_dB],
+             np.arange(25), track_PER_uncertaintyCSI[5, :, Idx_dB])
 plt.legend(('ViterbiNet - uncertainty CSI', 'Viterbi algorithm',
-            'ViterbiNet - uncertainty CSI - No Train', 'ViterbiNet - uncertainty CSI - bad training', 'ViterbiNet - uncertainty CSI - jini','ViterbiNet - uncertainty CSI - jini 70% Data'))
+            'ViterbiNet - uncertainty CSI - No Train', 'ViterbiNet - uncertainty CSI - low score training', 'ViterbiNet - uncertainty CSI - high score training', 'ViterbiNet - uncertainty CSI - jini','ViterbiNet - uncertainty CSI - jini 20% Data'))
 plt.title('PER - Path Error Rate\nChannel Tracking')
 plt.xlabel('t')
 plt.ylabel('PER')
@@ -652,37 +823,81 @@ plt.ylabel('PER')
 #channel tracking avg
 fig, (ax1, ax2) = plt.subplots(1, 2)
 
-ax1.plot(np.transpose(v_fSigWdB), track_SER_avg[0, :], 'ro--',
-             np.transpose(v_fSigWdB), track_SER_avg[3, :], 'go--',
-             np.transpose(v_fSigWdB), track_SER_avg[6, :], 'bo--',
+ax1.semilogy(np.transpose(v_fSigWdB), track_SER_avg[0, :], 'ro--',
+             np.transpose(v_fSigWdB), track_SER_avg[4, :], 'go--',
+             np.transpose(v_fSigWdB), track_SER_avg[8, :], 'bo--',
              np.transpose(v_fSigWdB), track_SER_avg[1, :],
-             np.transpose(v_fSigWdB), track_SER_avg[4, :],
+             np.transpose(v_fSigWdB), track_SER_avg[5, :],
              np.transpose(v_fSigWdB), track_SER_avg[2, :],
-             np.transpose(v_fSigWdB), track_SER_avg[5, :])
+             np.transpose(v_fSigWdB), track_SER_avg[6, :],
+             np.transpose(v_fSigWdB), track_SER_avg[3, :],
+             np.transpose(v_fSigWdB), track_SER_avg[7, :])
 ax1.legend(('ViterbiNet - perfect CSI', 'ViterbiNet - CSI uncertainty', 'Viterbi algorithm',
             'ViterbiNet - perfect CSI - No Train', 'ViterbiNet - CSI uncertainty - No Train',
-            'ViterbiNet - perfect CSI - bad train', 'ViterbiNet - CSI uncertainty - bad train'))
+            'ViterbiNet - perfect CSI - low score training', 'ViterbiNet - CSI uncertainty - low score training',
+            'ViterbiNet - perfect CSI - high score training', 'ViterbiNet - CSI uncertainty - high score training'))
 ax1.set_title('SER - Symbol Error Rate\nChannel Tracking')
 ax1.set(xlabel='SNR', ylabel='SER')
 ax1.grid()
 
-ax2.plot(np.transpose(v_fSigWdB), track_PER_avg[0, :], 'ro--',
-             np.transpose(v_fSigWdB), track_PER_avg[3, :], 'go--',
-             np.transpose(v_fSigWdB), track_PER_avg[6, :], 'bo--',
+ax2.semilogy(np.transpose(v_fSigWdB), track_PER_avg[0, :], 'ro--',
+             np.transpose(v_fSigWdB), track_PER_avg[4, :], 'go--',
+             np.transpose(v_fSigWdB), track_PER_avg[8, :], 'bo--',
              np.transpose(v_fSigWdB), track_PER_avg[1, :],
-             np.transpose(v_fSigWdB), track_PER_avg[4, :],
+             np.transpose(v_fSigWdB), track_PER_avg[5, :],
              np.transpose(v_fSigWdB), track_PER_avg[2, :],
-             np.transpose(v_fSigWdB), track_PER_avg[5, :])
+             np.transpose(v_fSigWdB), track_PER_avg[6, :],
+             np.transpose(v_fSigWdB), track_PER_avg[3, :],
+             np.transpose(v_fSigWdB), track_PER_avg[7, :])
 ax1.legend(('ViterbiNet - perfect CSI', 'ViterbiNet - CSI uncertainty', 'Viterbi algorithm',
             'ViterbiNet - perfect CSI - No Train', 'ViterbiNet - CSI uncertainty - No Train',
-            'ViterbiNet - perfect CSI - bad train', 'ViterbiNet - CSI uncertainty - bad train'))
+            'ViterbiNet - perfect CSI - low score training', 'ViterbiNet - CSI uncertainty - low score training',
+            'ViterbiNet - perfect CSI - high score training', 'ViterbiNet - CSI uncertainty - high score training'))
 ax2.set_title('PER - Path Error Rate\nChannel Tracking')
 ax2.set(xlabel='SNR', ylabel='PER')
 ax2.grid()
 
+#diversity MSE
+fig, (ax1, ax2) = plt.subplots(1, 2)
+
+ax1.bar(list(dict_train.keys()), dict_train.values(), color='g')
+ax1.set_title('train diversity MSE')
+ax1.set(xlabel='path number', ylabel='amount of data')
+
+ax2.bar(list(dict_med_train.keys()), dict_med_train.values(), color='g')
+ax2.set_title('median train diversity MSE')
+ax2.set(xlabel='path number', ylabel='amount of data')
+
+plt.figure()
+plt.plot(range(25), MSE_diversity_train[0, :], range(25), MSE_diversity_bad_train[0, :], range(25), MSE_diversity_med_train[0, :])
+plt.legend(('train diversity MSE', 'bad train diversity MSE', 'med train diversity MSE'))
+plt.title('Training set diversity MSE')
+plt.xlabel('t')
+plt.ylabel('diversity MSE')
+plt.show()
+
+#noise power
+plt.figure()
+plt.plot(range(25), NOISE_train[0, :], range(25), NOISE_bad_train[0, :], range(25), NOISE_med_train[0, :])
+plt.legend(('train additive noise power', 'bad train additive noise power', 'med train additive noise power'))
+plt.title('Training set noise sum')
+plt.xlabel('t')
+plt.ylabel('noise sum')
+plt.show()
+
+#error
+plt.figure()
+plt.plot(range(25), ERR_train[0, :], range(25), ERR_bad_train[0, :], range(25), ERR_med_train[0, :])
+plt.legend(('train error', 'bad train error', 'med train error'))
+plt.title('Training set error')
+plt.xlabel('t')
+plt.ylabel('error')
+plt.show()
+
+
 print('')
 
 
-# tem = path_test_B[:,0:2000]
+# tem = path_test_B[:, 0:2000]
 # a=np.mean(Xtrain_symbol==tem[:, v_fXhat_B[1, :] >= threshold])
 # print(a)
