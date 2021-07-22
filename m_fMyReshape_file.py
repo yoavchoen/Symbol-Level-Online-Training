@@ -20,14 +20,11 @@ def m_fMyReshape(v_fVec, s_nRows):
 
 
     s_nCols = np.size(v_fVec)
-    #v_fVec = reshape(v_fVec, 1, s_nCols);
 
-    #m_fMat = np.array(np.ones((s_nRows, s_nCols)))
     m_fMat = np.ones((s_nRows, s_nCols))
 
     for kk in range(s_nRows):
         ll = s_nRows - kk - 1
-        # m_fMat[ll, :] = np.concatenate(np.array([v_fVec[0:ll-1]]), v_fVec[ll: s_nCols-1])
         m_fMat[ll, 0:s_nCols-ll-1] = v_fVec[0, ll: s_nCols-1]
 
     return m_fMat
