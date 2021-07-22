@@ -3,13 +3,15 @@ import matplotlib.pyplot as plt
 
 def path(x):
     # return the path (0-15) of binary sequence
-    path = np.zeros((1, 50000))
-    for i in range(0, 50000-3):
+    s = np.size(x)
+    path = np.zeros((1, s))
+    for i in range(0, s-3):
         path[0, i] = x[0, i] + x[0, i+1]*2 + x[0, i+2]*4 + x[0, i+3]*8
     return path
 
 def sova_corelation(v_fXtest, v_fXhat):
-    # get and plot path and symbol performance by SOVA
+    # return SER and PER for each datasize
+
     #-----PATH-----#
     p = path(v_fXtest - 1)
     eq = (p == v_fXhat[2, :])
@@ -32,17 +34,6 @@ def sova_corelation(v_fXtest, v_fXhat):
         b = thresh * v_fXhat[2, :]
         datasize_and_err_path[1, i] = np.sum((a != b) * (a != 0)) / sum_thresh
 
-    # plt.figure()
-    # plt.plot(threshold, datasize_and_err_path[0, :], marker='*')
-    # plt.title('data size [%] - PATH')
-    # plt.xlabel("Threshold")
-    # plt.ylabel('% of symbols')
-    #
-    # plt.figure()
-    # plt.plot(threshold, datasize_and_err_path[1, :], marker='*')
-    # plt.title('PATH error')
-    # plt.xlabel("Threshold")
-    # plt.ylabel('PATH error')
 
     #-----symbol-----#
     w = np.sum(v_fXhat[1, :] * (v_fXhat[0, :] == v_fXtest)) / np.sum((v_fXhat[0, :] == v_fXtest))
@@ -59,19 +50,8 @@ def sova_corelation(v_fXtest, v_fXhat):
         b = thresh * v_fXhat[0, :]
         datasize_and_err_symbol[1, i] = np.sum((a != b) * (a != 0)) / sum_thresh
 
-    # plt.figure()
-    # plt.plot(threshold, datasize_and_err_symbol[0, :], marker='*')
-    # plt.title('data size [%] - symbol')
-    # plt.xlabel("Threshold")
-    # plt.ylabel('% of symbols')
-    #
-    # plt.figure()
-    # plt.plot(threshold, datasize_and_err_symbol[1, :], marker='*')
-    # plt.title('SER')
-    # plt.xlabel("Threshold")
-    # plt.ylabel('SER')
-
     return datasize_and_err_path, datasize_and_err_symbol
+
 
 def get_d(datasize_and_err):
     # get path and symbol error - 100,50,30,10 [%] of received data
@@ -87,6 +67,7 @@ def get_d(datasize_and_err):
                                datasize_and_err[1, int(index[0, 3] - 1)]))
     return d
 
+
 def diagram_plot(d_symbol, d_path):
     """
     plot columns diagram of SER scores and PATH scores
@@ -96,12 +77,7 @@ def diagram_plot(d_symbol, d_path):
     """
 
     #-----symbol columns plot-----#
-    # data to plot
     n_groups = 5
-    # d_100 = (72.246, 82.238, 93.664, 97.794, 99.430)
-    # d_50 = (76.624, 87.582, 98.393, 99.895, 100.00)
-    # d_30 = (78.858, 90.240, 99.278, 99.980, 100.00)
-    # d_10 = (83.404, 95.245, 99.778, 100.00, 100.00)
 
     d_100 = 100 * (1 - d_symbol[:, 0])
     d_50 = 100 * (1 - d_symbol[:, 1])
@@ -122,23 +98,23 @@ def diagram_plot(d_symbol, d_path):
     rects2 = plt.bar(index + bar_width, d_50, bar_width,
                      alpha=opacity,
                      color='g',
-                     label='50% of received data')
+                     label='top 50% SOVA score')
 
     rects3 = plt.bar(index + 2*bar_width, d_30, bar_width,
                      alpha=opacity,
                      color='r',
-                     label='30% of received data')
+                     label='top 30% SOVA score')
 
     rects4 = plt.bar(index + 3*bar_width, d_10, bar_width,
                      alpha=opacity,
                      color='y',
-                     label='10% of received data')
+                     label='top 10% SOVA score')
 
     plt.xlabel('SNR')
-    plt.ylabel('SER Scores')
-    plt.title('SER Scores by SNR')
+    plt.ylabel('success rate')
+    plt.title('success rate (symbol) by SNR')
     plt.xticks(index + 1.5*bar_width, ('0dB', '2dB', '4dB', '6dB', '8dB'))
-    plt.legend()
+    plt.legend(loc='lower right')
 
     plt.tight_layout()
     plt.show()
@@ -146,12 +122,7 @@ def diagram_plot(d_symbol, d_path):
 
 
     # -----PATH columns plot-----#
-    # data to plot
     n_groups = 5
-    # d_100 = (34.610, 54.528, 81.428, 92.532, 97.954)
-    # d_50 = (40.469, 66.768, 95.520, 99.649, 99.996)
-    # d_30 = (45.403, 74.254, 98.213, 99.851, 100.00)
-    # d_10 = (54.148, 85.431, 99.243, 99.943, 100.00)
 
     d_100 = 100*(1-d_path[:, 0])
     d_50 = 100*(1-d_path[:, 1])
@@ -172,23 +143,23 @@ def diagram_plot(d_symbol, d_path):
     rects2 = plt.bar(index + bar_width, d_50, bar_width,
                      alpha=opacity,
                      color='g',
-                     label='50% of received data')
+                     label='top 50% SOVA score')
 
     rects3 = plt.bar(index + 2 * bar_width, d_30, bar_width,
                      alpha=opacity,
                      color='r',
-                     label='30% of received data')
+                     label='top 30% SOVA score')
 
     rects4 = plt.bar(index + 3 * bar_width, d_10, bar_width,
                      alpha=opacity,
                      color='y',
-                     label='10% of received data')
+                     label='top 10% SOVA score')
 
     plt.xlabel('SNR')
-    plt.ylabel('PATH Scores')
-    plt.title('PATH Scores by SNR')
+    plt.ylabel('success rate')
+    plt.title('success rate (path) by SNR')
     plt.xticks(index + 1.5*bar_width, ('0dB', '2dB', '4dB', '6dB', '8dB'))
-    plt.legend()
+    plt.legend(loc='lower right')
 
     plt.tight_layout()
     plt.show()
