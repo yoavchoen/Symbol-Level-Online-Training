@@ -44,6 +44,11 @@ def GetViterbiNet(v_fXtrain, v_fYtrain ,s_nConst, s_nMemSize):
 
     # Train network with default learning rate
     # net = TrainViterbiNet(m_fXtrain, v_fYtrain, s_nConst, net, 0.00005)
+    #############
+    s_nM = np.size(m_fXtrain, 0)
+    combine_vec = s_nConst ** np.array([np.arange(s_nM)])  # np.array([[1, 2, 4, 8]])
+    m_fXtrain = combine_vec.dot(m_fXtrain - 1)  ###
+    #############
     net.TrainViterbiNet(m_fXtrain, v_fYtrain, s_nConst, 0.00005)
 
     # # Compute output PDF using GMM fitting
