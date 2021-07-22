@@ -11,13 +11,21 @@ from m_fMyReshape_file import m_fMyReshape
 from SOVA_path_and_SER import *
 
 
-def grade_AVG(x1, x2, x3):
-    X = np.zeros((3, 50000))
-    X[0, :] = np.rint((x1[0, :]+x2[0, :]+x3[0, :])/3)
-    X[1, :] = (x1[1, :]+x2[1, :]+x3[1, :])/3
-    X[2, :] = path(np.reshape(X[0, :]-1, newshape=(1, 50000)))
-    return X
+# def grade_AVG(x1, x2, x3):
+#     X = np.zeros((3, 50000))
+#     X[0, :] = np.rint((x1[0, :]+x2[0, :]+x3[0, :])/3)
+#     X[1, :] = (x1[1, :]+x2[1, :]+x3[1, :])/3
+#     X[2, :] = path(np.reshape(X[0, :]-1, newshape=(1, 50000)))
+#     return X
 
+def Xhat_viterbinet(net1, net2, net3, net4, v_fYtest, s_nConst, s_nMemSize):
+    likelihood1 = net1.ApplyViterbiNet(v_fYtest, s_nConst, s_nMemSize)
+    likelihood2 = net2.ApplyViterbiNet(v_fYtest, s_nConst, s_nMemSize)
+    likelihood3 = net3.ApplyViterbiNet(v_fYtest, s_nConst, s_nMemSize)
+    likelihood4 = net4.ApplyViterbiNet(v_fYtest, s_nConst, s_nMemSize)
+    ensamble_likelihood = (likelihood1+likelihood2+likelihood3+likelihood4)/4
+    Xhat = v_fViterbi(ensamble_likelihood, s_nConst, s_nMemSize)
+    return Xhat
 
 np.random.seed(9001)
 
@@ -115,16 +123,14 @@ for eIdx in range(np.size(v_fExps)):
         if v_nCurves[0] == 1:
             # Train network
             net1 = GetViterbiNet(v_fXtrain, v_fYtrain, s_nConst, s_nMemSize)
-            # -----ensamble-----#
+            #-----ensamble-----#
             # net1_1 = GetViterbiNet(v_fXtrain, v_fYtrain, s_nConst, s_nMemSize)  # ensamble
             # net1_2 = GetViterbiNet(v_fXtrain, v_fYtrain, s_nConst, s_nMemSize)  # ensamble
+            # net1_3 = GetViterbiNet(v_fXtrain, v_fYtrain, s_nConst, s_nMemSize)  # ensamble
+            # v_fXhat1 = Xhat_viterbinet(net1, net1_1, net1_2, net1_3, v_fYtest, s_nConst, s_nMemSize)
 
             # Apply ViterbiNet detctor
             v_fXhat1 = net1.ApplyViterbiNet(v_fYtest, s_nConst, s_nMemSize)
-            #-----ensamble-----#
-            # v_fXhat1_1 = net1_1.ApplyViterbiNet(v_fYtest, s_nConst, s_nMemSize)
-            # v_fXhat1_2 = net1_2.ApplyViterbiNet(v_fYtest, s_nConst, s_nMemSize)
-            # v_fXhat1 = grade_AVG(v_fXhat1, v_fXhat1_1, v_fXhat1_2)
 
             # Evaluate error rate
             m_fSER[0, mm, eIdx] = np.mean(v_fXhat1[0, :] != v_fXtest)
@@ -133,7 +139,6 @@ for eIdx in range(np.size(v_fExps)):
             datasize_and_err_path1, datasize_and_err_symbol1 = sova_corelation(v_fXtest, v_fXhat1)
             d_path1[mm, :] = get_d(datasize_and_err_path1)
             d_symbol1[mm, :] = get_d(datasize_and_err_symbol1)
-
             
         # Viterbi net - CSI uncertainty
         if v_nCurves[1] == 1:
@@ -142,13 +147,11 @@ for eIdx in range(np.size(v_fExps)):
             # -----ensamble-----#
             # net2_1 = GetViterbiNet(v_fXtrain, v_fYtrain, s_nConst, s_nMemSize)  # ensamble
             # net2_2 = GetViterbiNet(v_fXtrain, v_fYtrain, s_nConst, s_nMemSize)  # ensamble
+            # net2_3 = GetViterbiNet(v_fXtrain, v_fYtrain, s_nConst, s_nMemSize)  # ensamble
+            # v_fXhat2 = Xhat_viterbinet(net2, net2_1, net2_2, net2_3, v_fYtest, s_nConst, s_nMemSize)
 
             # Apply ViterbiNet detctor
             v_fXhat2 = net2.ApplyViterbiNet(v_fYtest, s_nConst, s_nMemSize)
-            #-----ensamble-----#
-            # v_fXhat2_1 = net2_1.ApplyViterbiNet(v_fYtest, s_nConst, s_nMemSize)
-            # v_fXhat2_2 = net2_2.ApplyViterbiNet(v_fYtest, s_nConst, s_nMemSize)
-            # v_fXhat2 = grade_AVG(v_fXhat2, v_fXhat2_1, v_fXhat2_2)
 
             # Evaluate error rate
             m_fSER[1, mm, eIdx] = np.mean(v_fXhat2[0, :] != v_fXtest)
@@ -157,7 +160,6 @@ for eIdx in range(np.size(v_fExps)):
             datasize_and_err_path2, datasize_and_err_symbol2 = sova_corelation(v_fXtest, v_fXhat2)
             d_path2[mm, :] = get_d(datasize_and_err_path2)
             d_symbol2[mm, :] = get_d(datasize_and_err_symbol2)
-
 
         # Model-based Viterbi algorithm
         if v_nCurves[2] == 1:
