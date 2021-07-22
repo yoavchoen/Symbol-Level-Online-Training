@@ -2,7 +2,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 import torch.optim as optim
 import matplotlib.pyplot as plt
 from torch.utils.data import TensorDataset, DataLoader
@@ -56,9 +55,9 @@ class Net(nn.Module):
         miniBatchSize = 25
 
         # Combine each set of inputs as a single unique category
-        s_nM = np.size(X_train, 0)
-        combine_vec = s_nConst ** np.array([np.arange(s_nM)])  # np.array([[1, 2, 4, 8]])
-        X_train = combine_vec.dot(X_train - 1)
+        # s_nM = np.size(X_train, 0)
+        # combine_vec = s_nConst ** np.array([np.arange(s_nM)])  # np.array([[1, 2, 4, 8]])
+        # X_train = combine_vec.dot(X_train - 1) ###
 
         Y_train = np.reshape(Y_train, newshape=(np.size(Y_train, 1), 1))
         X_train = np.reshape(X_train, newshape=(np.size(X_train, 1), 1))
@@ -118,10 +117,13 @@ class Net(nn.Module):
         m_fpS_Y = self.forward(Y_test.float())
         # Compute likelihoods
         m_fLikelihood = m_fpS_Y
-        # Apply Viterbi output layer
-        m_fLikelihood = np.reshape(m_fLikelihood.detach().numpy(), newshape=(50000, 16))
-        v_fXhat = v_fViterbi(m_fLikelihood, s_nConst, s_nMemSize)
+        m_fLikelihood = np.reshape(m_fLikelihood.detach().numpy(), newshape=(Y_test.shape[1], 16)) ###50000
 
+        #for ensamble
+        # return m_fLikelihood
+
+        # Apply Viterbi output layer
+        v_fXhat = v_fViterbi(m_fLikelihood, s_nConst, s_nMemSize)
         return v_fXhat
 
 
