@@ -46,7 +46,7 @@ def success_rate_plot(d_path1):
     plt.legend(loc='lower right')
 
     plt.tight_layout()
-    plt.show()
+    # plt.show()
 
 def success_rate_all(d_symbol1, d_symbol2, d_path1, d_path2):
     # success rate for 10,30,50,100% highest SOVA score
@@ -87,7 +87,7 @@ def channel_taps_plot(m_fChannel):
     plt.xlabel('Block')
     plt.ylabel('channel taps')
 
-def track_res_plot(track_SER_fullCSI, track_SER_perfectCSI, track_SER_uncertaintyCSI, v_fSigWdB):
+def track_res_plot(track_SER_fullCSI, track_SER_perfectCSI, track_SER_uncertaintyCSI, v_fSigWdB, dB_wanted):
     # moving average of SER
     t_SER_fullCSI = np.zeros(track_SER_fullCSI.shape)
     t_SER_perfectCSI = np.zeros(track_SER_perfectCSI.shape)
@@ -106,18 +106,18 @@ def track_res_plot(track_SER_fullCSI, track_SER_perfectCSI, track_SER_uncertaint
         t_SER_uncertaintyCSI[:, index, :] = (t_SER_uncertaintyCSI[:, index - 1, :] * (index) +
                                              track_SER_uncertaintyCSI[:, index, :]) / (index + 1)
 
-    dB_wanted = 6
+    # dB_wanted = 6
     Idx_dB = np.where(v_fSigWdB == dB_wanted)
     Idx_dB = int(Idx_dB[1])
 
     plt.figure()
-    plt.semilogy(np.arange(25), t_SER_perfectCSI[0, :, Idx_dB], 'ro--',
-                 np.arange(25), t_SER_fullCSI[0, :, Idx_dB], 'bo--',
-                 np.arange(25), t_SER_perfectCSI[1, :, Idx_dB],
-                 np.arange(25), t_SER_perfectCSI[2, :, Idx_dB],
-                 np.arange(25), t_SER_perfectCSI[3, :, Idx_dB],
-                 np.arange(25), t_SER_perfectCSI[4, :, Idx_dB],
-                 np.arange(25), t_SER_perfectCSI[5, :, Idx_dB])
+    plt.semilogy(np.arange(25), t_SER_perfectCSI[0, :, Idx_dB], 'ro-',
+                 np.arange(25), t_SER_fullCSI[0, :, Idx_dB], 'bo-',
+                 np.arange(25), t_SER_perfectCSI[1, :, Idx_dB], 'x--',
+                 np.arange(25), t_SER_perfectCSI[2, :, Idx_dB], 's--',
+                 np.arange(25), t_SER_perfectCSI[3, :, Idx_dB], 'd--',
+                 np.arange(25), t_SER_perfectCSI[4, :, Idx_dB], '*--',
+                 np.arange(25), t_SER_perfectCSI[5, :, Idx_dB], '.--', fillstyle='none')
     plt.legend(('ViterbiNet - median training', 'Viterbi algorithm', 'ViterbiNet - No Train',
                 'ViterbiNet - low score training', 'ViterbiNet - high score training',
                 'ViterbiNet - genie', 'ViterbiNet - genie 20% Data'))
@@ -126,13 +126,13 @@ def track_res_plot(track_SER_fullCSI, track_SER_perfectCSI, track_SER_uncertaint
     plt.ylabel('SER')
 
     plt.figure()
-    plt.semilogy(np.arange(25), t_SER_uncertaintyCSI[0, :, Idx_dB], 'go--',
-                 np.arange(25), t_SER_fullCSI[0, :, Idx_dB], 'bo--',
-                 np.arange(25), t_SER_uncertaintyCSI[1, :, Idx_dB],
-                 np.arange(25), t_SER_uncertaintyCSI[2, :, Idx_dB],
-                 np.arange(25), t_SER_uncertaintyCSI[3, :, Idx_dB],
-                 np.arange(25), t_SER_uncertaintyCSI[4, :, Idx_dB],
-                 np.arange(25), t_SER_uncertaintyCSI[5, :, Idx_dB])
+    plt.semilogy(np.arange(25), t_SER_uncertaintyCSI[0, :, Idx_dB], 'go-',
+                 np.arange(25), t_SER_fullCSI[0, :, Idx_dB], 'bo-',
+                 np.arange(25), t_SER_uncertaintyCSI[1, :, Idx_dB], 'x--',
+                 np.arange(25), t_SER_uncertaintyCSI[2, :, Idx_dB], 's--',
+                 np.arange(25), t_SER_uncertaintyCSI[3, :, Idx_dB], 'd--',
+                 np.arange(25), t_SER_uncertaintyCSI[4, :, Idx_dB], '*--',
+                 np.arange(25), t_SER_uncertaintyCSI[5, :, Idx_dB], '.--', fillstyle='none')
     plt.legend(('ViterbiNet - median training', 'Viterbi algorithm', 'ViterbiNet - No Train',
                 'ViterbiNet - low score training', 'ViterbiNet - high score training',
                 'ViterbiNet - genie', 'ViterbiNet - genie 20% Data'))
@@ -143,12 +143,12 @@ def track_res_plot(track_SER_fullCSI, track_SER_perfectCSI, track_SER_uncertaint
 def AVGtrack_plot(track_SER_avg, v_fSigWdB):
     # AVG display - for each SNR
     plt.figure()
-    plt.semilogy(np.transpose(v_fSigWdB), track_SER_avg[0, :], 'ro--',
-                 np.transpose(v_fSigWdB), track_SER_avg[12, :], 'bo--',
-                 np.transpose(v_fSigWdB), track_SER_avg[1, :],
-                 np.transpose(v_fSigWdB), track_SER_avg[2, :],
-                 np.transpose(v_fSigWdB), track_SER_avg[3, :],
-                 np.transpose(v_fSigWdB), track_SER_avg[5, :])
+    plt.semilogy(np.transpose(v_fSigWdB), track_SER_avg[0, :], 'ro-',
+                 np.transpose(v_fSigWdB), track_SER_avg[12, :], 'bo-',
+                 np.transpose(v_fSigWdB), track_SER_avg[1, :], 'x--',
+                 np.transpose(v_fSigWdB), track_SER_avg[2, :], 's--',
+                 np.transpose(v_fSigWdB), track_SER_avg[3, :], 'd--',
+                 np.transpose(v_fSigWdB), track_SER_avg[5, :], '.--', fillstyle='none')
     plt.legend(('ViterbiNet - median training', 'Viterbi algorithm',
                 'ViterbiNet - No Train',
                 'ViterbiNet - low score training',
@@ -160,12 +160,12 @@ def AVGtrack_plot(track_SER_avg, v_fSigWdB):
     plt.grid()
 
     plt.figure()
-    plt.semilogy(np.transpose(v_fSigWdB), track_SER_avg[6, :], 'go--',
-                 np.transpose(v_fSigWdB), track_SER_avg[12, :], 'bo--',
-                 np.transpose(v_fSigWdB), track_SER_avg[7, :],
-                 np.transpose(v_fSigWdB), track_SER_avg[8, :],
-                 np.transpose(v_fSigWdB), track_SER_avg[9, :],
-                 np.transpose(v_fSigWdB), track_SER_avg[11, :])
+    plt.semilogy(np.transpose(v_fSigWdB), track_SER_avg[6, :], 'go-',
+                 np.transpose(v_fSigWdB), track_SER_avg[12, :], 'bo-',
+                 np.transpose(v_fSigWdB), track_SER_avg[7, :], 'x--',
+                 np.transpose(v_fSigWdB), track_SER_avg[8, :], 's--',
+                 np.transpose(v_fSigWdB), track_SER_avg[9, :], 'd--',
+                 np.transpose(v_fSigWdB), track_SER_avg[11, :], '.--', fillstyle='none')
     plt.legend(('ViterbiNet - median training', 'Viterbi algorithm',
                 'ViterbiNet - No Train',
                 'ViterbiNet - low score training',
@@ -183,11 +183,11 @@ def diversity_plot(dict_train, dict_bad_train, dict_med_train,
 
     ax1.bar(list(dict_train.keys()), dict_train.values(), color='g')
     ax1.set_title('high score training diversity MSE')
-    ax1.set(xlabel='state number', ylabel='amount of data')
+    ax1.set(xlabel='state number', ylabel='number of samples')
 
     ax2.bar(list(dict_med_train.keys()), dict_med_train.values(), color='g')
     ax2.set_title('median training diversity MSE')
-    ax2.set(xlabel='state number', ylabel='amount of data')
+    ax2.set(xlabel='state number', ylabel='number of samples')
 
     # ax2.bar(list(dict_bad_train.keys()), dict_bad_train.values(), color='g')
     # # ax2.set_title('bad train diversity MSE')
@@ -201,7 +201,7 @@ def diversity_plot(dict_train, dict_bad_train, dict_med_train,
     plt.title('Training set diversity MSE')
     plt.xlabel('Block')
     plt.ylabel('diversity MSE')
-    plt.show()
+    # plt.show()
 
 def NoisePower_error(NOISE_train, NOISE_bad_train, NOISE_med_train, ERR_train, ERR_bad_train, ERR_med_train):
     # noise power
@@ -211,7 +211,7 @@ def NoisePower_error(NOISE_train, NOISE_bad_train, NOISE_med_train, ERR_train, E
     plt.title('Training set additive noise power')
     plt.xlabel('Block')
     plt.ylabel('noise sum')
-    plt.show()
+    # plt.show()
 
     # error
     plt.figure()
@@ -220,4 +220,4 @@ def NoisePower_error(NOISE_train, NOISE_bad_train, NOISE_med_train, ERR_train, E
     plt.title('Training set error (SER)')
     plt.xlabel('Block')
     plt.ylabel('error')
-    plt.show()
+    # plt.show()
