@@ -575,197 +575,39 @@ for eIdx in range(np.size(v_fExps)):
     print(eIdx)
 
 m_fSERAvg = m_fSERAvg / np.size(v_fExps)
+
 print('')
 
 
 
 
-# ----------Display Results----------#
+#---------------Display Results---------------#
 
-"""
-#success rate for 10,30,50,100% highest SOVA score
-#perfect CSI - symbol detection
-d_symbol1_ = np.array([d_symbol1[3, :], d_symbol1[4, :], d_symbol1[5, :], d_symbol1[6, :], d_symbol1[7, :]])
-#CSI uncertainty - symbol detection
-d_symbol2_ = np.array([d_symbol2[3, :], d_symbol2[4, :], d_symbol2[5, :], d_symbol2[6, :], d_symbol2[7, :]])
-#perfect CSI - path detection
-d_path1_ = np.array([d_path1[3, :], d_path1[4, :], d_path1[5, :], d_path1[6, :], d_path1[7, :]])
-#CSI uncertainty - path detection
-d_path2_ = np.array([d_path2[3, :], d_path2[4, :], d_path2[5, :], d_path2[6, :], d_path2[7, :]])
-
-diagram_plot(d_symbol1_, d_path1_)
-diagram_plot(d_symbol2_, d_path2_)
-"""
-
-
-#--------------------------------------------#
 #success rate
-success_rate_all(d_symbol1, d_symbol2, d_path1, d_path2)
+# success_rate_all(d_symbol1, d_symbol2, d_path1, d_path2)
 success_rate_plot(d_path1)
+
 
 #ViterbiNet
 ViterbiNet_plot(v_fSigWdB, m_fSERAvg)
 
-#channel tracking simulation results:
+
+#channel tracking simulation results (median point chosen to be optimal for SNR=6dB):
 #channel coefficients
 channel_taps_plot(m_fChannel)
+
 #moving average of SER
-track_res_plot(track_SER_fullCSI, track_SER_perfectCSI, track_SER_uncertaintyCSI, v_fSigWdB)
+dB_wanted = 6  #chosen SNR results [-6,-4,-2,0,2,4,6,8,10]
+track_res_plot(track_SER_fullCSI, track_SER_perfectCSI, track_SER_uncertaintyCSI, v_fSigWdB, dB_wanted)
+
 #AVG display - for each SNR
 AVGtrack_plot(track_SER_avg, v_fSigWdB)
+
 
 #diversity MSE
 diversity_plot(dict_train, dict_bad_train, dict_med_train,
                    MSE_diversity_train, MSE_diversity_bad_train, MSE_diversity_med_train)
 #noise power & error
 NoisePower_error(NOISE_train, NOISE_bad_train, NOISE_med_train, ERR_train, ERR_bad_train, ERR_med_train)
-#--------------------------------------------#
 
-
-"""
-#ViterbiNet
-plt.figure()
-plt.semilogy(np.transpose(v_fSigWdB), m_fSERAvg[0, :], 'ro--',
-             np.transpose(v_fSigWdB), m_fSERAvg[1, :], 'go--',
-             np.transpose(v_fSigWdB), m_fSERAvg[2, :], 'bo--')
-plt.legend(('ViterbiNet - perfect CSI', 'ViterbiNet - CSI uncertainty', 'Viterbi '
-                                                                        'algorithm'))
-plt.title('SER - Symbol Error Rate\n(Learn Rate=0.00005, maxEpochs=50, miniBatchSize=25)\n(NN=1x75x16)')
-plt.xlabel('SNR [dB]')
-plt.ylabel('SER')
-plt.grid(True, which="both", ls="-")
-
-
-#channel tracking simulation results:
-#channel coefficients
-plt.figure()
-plt.plot(np.arange(200), m_fChannel[:, 0],
-         np.arange(200), m_fChannel[:, 1],
-         np.arange(200), m_fChannel[:, 2],
-         np.arange(200), m_fChannel[:, 3])
-plt.legend(('channel tap 1', 'channel tap 2', 'channel tap 3', 'channel tap 4'))
-plt.title('channel taps variation')
-plt.xlabel('Block')
-plt.ylabel('channel taps')
-
-#moving average of SER
-t_SER_fullCSI = np.zeros(track_SER_fullCSI.shape)
-t_SER_perfectCSI = np.zeros(track_SER_perfectCSI.shape)
-t_SER_uncertaintyCSI = np.zeros(track_SER_uncertaintyCSI.shape)
-
-t_SER_fullCSI[:, 0, :] = track_SER_fullCSI[:, 0, :]
-t_SER_perfectCSI[:, 0, :] = track_SER_perfectCSI[:, 0, :]
-t_SER_uncertaintyCSI[:, 0, :] = track_SER_uncertaintyCSI[:, 0, :]
-
-for index in range(24):
-    index = index+1
-    t_SER_fullCSI[:, index, :] = (t_SER_fullCSI[:, index-1, :]*(index)+track_SER_fullCSI[:, index, :])/(index+1)
-    t_SER_perfectCSI[:, index, :] = (t_SER_perfectCSI[:, index-1, :]*(index)+track_SER_perfectCSI[:, index, :])/(index+1)
-    t_SER_uncertaintyCSI[:, index, :] = (t_SER_uncertaintyCSI[:, index-1, :]*(index)+track_SER_uncertaintyCSI[:, index, :])/(index+1)
-
-dB_wanted = 6
-Idx_dB = np.where(v_fSigWdB == dB_wanted)
-Idx_dB = int(Idx_dB[1])
-
-plt.figure()
-plt.semilogy(np.arange(25), t_SER_perfectCSI[0, :, Idx_dB], 'ro--',
-             np.arange(25), t_SER_fullCSI[0, :, Idx_dB], 'bo--',
-             np.arange(25), t_SER_perfectCSI[1, :, Idx_dB],
-             np.arange(25), t_SER_perfectCSI[2, :, Idx_dB],
-             np.arange(25), t_SER_perfectCSI[3, :, Idx_dB],
-             np.arange(25), t_SER_perfectCSI[4, :, Idx_dB],
-             np.arange(25), t_SER_perfectCSI[5, :, Idx_dB])
-plt.legend(('ViterbiNet - median training', 'Viterbi algorithm', 'ViterbiNet - No Train',
-            'ViterbiNet - low score training', 'ViterbiNet - high score training',
-            'ViterbiNet - genie', 'ViterbiNet - genie 20% Data'))
-plt.title(f'SER - Symbol Error Rate\nChannel Tracking - {dB_wanted}dB')
-plt.xlabel('Block')
-plt.ylabel('SER')
-
-plt.figure()
-plt.semilogy(np.arange(25), t_SER_uncertaintyCSI[0, :, Idx_dB], 'go--',
-             np.arange(25), t_SER_fullCSI[0, :, Idx_dB], 'bo--',
-             np.arange(25), t_SER_uncertaintyCSI[1, :, Idx_dB],
-             np.arange(25), t_SER_uncertaintyCSI[2, :, Idx_dB],
-             np.arange(25), t_SER_uncertaintyCSI[3, :, Idx_dB],
-             np.arange(25), t_SER_uncertaintyCSI[4, :, Idx_dB],
-             np.arange(25), t_SER_uncertaintyCSI[5, :, Idx_dB])
-plt.legend(('ViterbiNet - median training', 'Viterbi algorithm', 'ViterbiNet - No Train',
-            'ViterbiNet - low score training', 'ViterbiNet - high score training',
-            'ViterbiNet - genie', 'ViterbiNet - genie 20% Data'))
-plt.title(f'SER - Symbol Error Rate\nChannel Tracking - {dB_wanted}dB')
-plt.xlabel('Block')
-plt.ylabel('SER')
-
-#AVG display - for each SNR
-plt.figure()
-plt.semilogy(np.transpose(v_fSigWdB), track_SER_avg[0, :], 'ro--',
-             np.transpose(v_fSigWdB), track_SER_avg[8, :], 'bo--',
-             np.transpose(v_fSigWdB), track_SER_avg[1, :],
-             np.transpose(v_fSigWdB), track_SER_avg[2, :],
-             np.transpose(v_fSigWdB), track_SER_avg[3, :])
-plt.legend(('ViterbiNet - median training', 'Viterbi algorithm',
-            'ViterbiNet - No Train',
-            'ViterbiNet - low score training',
-            'ViterbiNet - high score training'))
-plt.title('Average SER (Symbol Error Rate)\nChannel Tracking')
-plt.xlabel('SNR')
-plt.ylabel('SER')
-plt.grid()
-
-plt.figure()
-plt.semilogy(np.transpose(v_fSigWdB), track_SER_avg[4, :], 'go--',
-             np.transpose(v_fSigWdB), track_SER_avg[8, :], 'bo--',
-             np.transpose(v_fSigWdB), track_SER_avg[5, :],
-             np.transpose(v_fSigWdB), track_SER_avg[6, :],
-             np.transpose(v_fSigWdB), track_SER_avg[7, :])
-plt.legend(('ViterbiNet - median training', 'Viterbi algorithm',
-            'ViterbiNet - No Train',
-            'ViterbiNet - low score training',
-            'ViterbiNet - high score training'))
-plt.title('Average SER (Symbol Error Rate)\nChannel Tracking')
-plt.xlabel('SNR')
-plt.ylabel('SER')
-plt.grid()
-
-
-#diversity MSE
-fig, (ax1, ax2) = plt.subplots(1, 2)
-
-ax1.bar(list(dict_train.keys()), dict_train.values(), color='g')
-ax1.set_title('high score training diversity MSE')
-ax1.set(xlabel='state number', ylabel='amount of data')
-
-ax2.bar(list(dict_med_train.keys()), dict_med_train.values(), color='g')
-ax2.set_title('median training diversity MSE')
-ax2.set(xlabel='state number', ylabel='amount of data')
-
-plt.figure()
-plt.plot(range(25), MSE_diversity_train[0, :], range(25), MSE_diversity_bad_train[0, :], range(25), MSE_diversity_med_train[0, :])
-plt.legend(('high score training', 'low score training', 'median training'))
-plt.title('Training set diversity MSE')
-plt.xlabel('Block')
-plt.ylabel('diversity MSE')
-plt.show()
-
-#noise power
-plt.figure()
-plt.plot(range(25), NOISE_train[0, :], range(25), NOISE_bad_train[0, :], range(25), NOISE_med_train[0, :])
-plt.legend(('high score training', 'low score training', 'median training'))
-plt.title('Training set additive noise power')
-plt.xlabel('Block')
-plt.ylabel('noise sum')
-plt.show()
-
-#error
-plt.figure()
-plt.plot(range(25), ERR_train[0, :], range(25), ERR_bad_train[0, :], range(25), ERR_med_train[0, :])
-plt.legend(('high score training', 'low score training', 'median training'))
-plt.title('Training set error (SER)')
-plt.xlabel('Block')
-plt.ylabel('error')
-plt.show()
-
-
-print('')
-"""
+#---------------------------------------------#
