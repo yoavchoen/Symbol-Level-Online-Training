@@ -9,6 +9,7 @@ def path(x):
         path[0, i] = x[0, i] + x[0, i+1]*2 + x[0, i+2]*4 + x[0, i+3]*8
     return path
 
+
 def sova_corelation(v_fXtest, v_fXhat):
     # return SER and PER for each datasize
 
