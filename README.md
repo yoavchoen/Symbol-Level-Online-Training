@@ -1,8 +1,8 @@
-# ViterbiNet-in-python
-**ViterbiNet implementation in python.**
+# Symbol-Level-Online-Training
+**Symbol-Level Online Channel Tracking for DeepLearning-Aided Receivers.**
 
 based on the paper:
 
-N. Shlezinger, N. Farsad, Y. C. Eldar, and A. J. Goldsmith.
+R.A.Finish, Y.Cohen, T.Raviv, and N.Shlezinger
 
-“ViterbiNet: A deep learning based Viterbi algorithm for symbol detection”.
+"Symbol-Level Online Channel Tracking for Deep Learning-Aided Receivers"
