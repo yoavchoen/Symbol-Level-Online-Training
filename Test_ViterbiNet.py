@@ -213,4 +213,5 @@ plt.xlabel('SNR [dB]')
 plt.ylabel('SER')
 plt.grid(True, which="both", ls="-")
 plt.show()
+
 print('')
