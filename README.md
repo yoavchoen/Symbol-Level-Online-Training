@@ -18,5 +18,4 @@ The implementation of the system includes several parts -
 
 - graph_data_loader_and_plot - Load the results data from the '.pickle' files and display them.
 
-A code example for evaluating symbol-level online channel tracking for ViterbiNet
-can be found in the script Test_ChannelTrack_ViterbiNet.py.
+A code example for evaluating symbol-level online channel tracking for ViterbiNet can be found in the script Test_ChannelTrack_ViterbiNet.py.
